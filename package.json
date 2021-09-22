@@ -1,0 +1,25 @@
+{
+  "name": "steamcommunity",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.21.4",
+    "cheerio": "^1.0.0-rc.10",
+    "form-data": "^4.0.0",
+    "retry": "^0.13.1",
+    "steam-crypto-ts": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^16.9.6",
+    "@types/retry": "^0.12.1",
+    "ts-jest": "^27.0.5",
+    "ts-node-dev": "^1.1.8",
+    "typescript": "^4.4.3"
+  }
+}
