@@ -24,7 +24,7 @@ interface Cookie {
   steamLoginSecure: string;
 }
 
-interface SteamInventoryJson {
+interface Inventory {
   rgInventory: {
     [key: string]: {
       id: string;

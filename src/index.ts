@@ -160,7 +160,7 @@ export async function getCardsInventory(
     operation.attempt(async () => {
       try {
         const res = await axios(config);
-        const data: SteamInventoryJson = res.data;
+        const data: Inventory = res.data;
         const items = parseItems(data, contextId);
         resolve(items);
       } catch (e) {
@@ -258,7 +258,7 @@ function parseFarmingData(html: string): FarmData[] {
 /**
  * Helper function for getCardsInventory
  */
-function parseItems(data: SteamInventoryJson, contextId: string): Item[] {
+function parseItems(data: Inventory, contextId: string): Item[] {
   const inventory = data.rgInventory;
   const description = data.rgDescriptions;
 
