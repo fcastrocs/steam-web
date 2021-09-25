@@ -5,6 +5,7 @@ import Crypto from "crypto";
 import cheerio from "cheerio";
 import SteamCrypto from "steam-crypto-ts";
 const HttpsAgent = require("https-proxy-agent");
+import {Proxy, Cookie, FarmData, Item, Inventory} from "./types";
 
 axios.defaults.headers = {
   "User-Agent": "Valve/Steam HTTP Client 1.0",

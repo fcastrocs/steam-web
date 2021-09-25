@@ -1,3 +1,4 @@
+import { Proxy, Cookie, FarmData, Item } from "./types";
 /**
  * Login via steam web to obtain a cookie
  */

@@ -1,11 +1,11 @@
-interface FarmData {
+export interface FarmData {
     name: string;
     appId: number;
     playTime: number;
     remainingCards: number;
     droppedCards: number;
 }
-interface Item {
+export interface Item {
     assetid: string;
     amount: string;
     icon: string;
@@ -14,11 +14,11 @@ interface Item {
     tradable: boolean;
     contextId: string;
 }
-interface Cookie {
+export interface Cookie {
     sessionid: string;
     steamLoginSecure: string;
 }
-interface Inventory {
+export interface Inventory {
     rgInventory: {
         [key: string]: {
             id: string;
@@ -36,7 +36,7 @@ interface Inventory {
         };
     };
 }
-interface Proxy {
+export interface Proxy {
     ip: string;
     port: number;
 }
