@@ -26,7 +26,7 @@ export async function login(steamid: string, webNonce: string, proxy: Proxy): Pr
     url,
     method: "POST",
     timeout: Number(process.env.STEAMCOMMUNITY_TIMEOUT),
-    httpsAgent: new HttpsAgent(`http://ccqdjjhc-dest:yt4v7cxsvnv6@${proxy.ip}:${proxy.port}`),
+    httpsAgent: new HttpsAgent(`http://${proxy.ip}:${proxy.port}`),
   };
 
   return new Promise((resolve, reject) => {
@@ -82,7 +82,7 @@ export async function getFarmingData(steamid: string, cookie: Cookie, proxy: Pro
     url,
     method: "GET",
     timeout: Number(process.env.STEAMCOMMUNITY_TIMEOUT),
-    httpsAgent: new HttpsAgent(`http://ccqdjjhc-dest:yt4v7cxsvnv6@${proxy.ip}:${proxy.port}`),
+    httpsAgent: new HttpsAgent(`http://${proxy.ip}:${proxy.port}`),
     headers: {
       Cookie: serializedCookie,
     },
@@ -129,7 +129,7 @@ export async function getCardsInventory(steamid: string, cookie: Cookie, proxy: 
     url,
     method: "GET",
     timeout: Number(process.env.STEAMCOMMUNITY_TIMEOUT),
-    httpsAgent: new HttpsAgent(`http://ccqdjjhc-dest:yt4v7cxsvnv6@${proxy.ip}:${proxy.port}`),
+    httpsAgent: new HttpsAgent(`http://${proxy.ip}:${proxy.port}`),
     headers: {
       Cookie: serializedCookie,
     },
