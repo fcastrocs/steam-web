@@ -1,6 +1,3 @@
-/**
- * Steamcommunity
- */
 interface FarmData {
     name: string;
     appId: number;
