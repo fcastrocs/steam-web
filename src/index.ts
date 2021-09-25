@@ -1,7 +1,7 @@
 import axios, { AxiosRequestConfig } from "axios";
-import * as FormData from "form-data";
-import * as retry from "retry";
-import * as Crypto from "crypto";
+import FormData from "form-data";
+import retry from "retry";
+import Crypto from "crypto";
 import cheerio from "cheerio";
 import SteamCrypto from "steam-crypto-ts";
 const HttpsAgent = require("https-proxy-agent");
@@ -18,11 +18,7 @@ const operationOptions: retry.OperationOptions = {
 /**
  * Login via steam web to obtain a cookie
  */
-export async function login(
-  steamid: string,
-  webNonce: string,
-  proxy: Proxy
-): Promise<Cookie> {
+export async function login(steamid: string, webNonce: string, proxy: Proxy): Promise<Cookie> {
   const url = "https://api.steampowered.com/ISteamUserAuth/AuthenticateUser/v1";
   const operation = retry.operation(operationOptions);
 
@@ -30,9 +26,7 @@ export async function login(
     url,
     method: "POST",
     timeout: Number(process.env.STEAMCOMMUNITY_TIMEOUT),
-    httpsAgent: new HttpsAgent(
-      `http://ccqdjjhc-dest:yt4v7cxsvnv6@${proxy.ip}:${proxy.port}`
-    ),
+    httpsAgent: new HttpsAgent(`http://ccqdjjhc-dest:yt4v7cxsvnv6@${proxy.ip}:${proxy.port}`),
   };
 
   return new Promise((resolve, reject) => {
@@ -41,10 +35,7 @@ export async function login(
       const form = new FormData();
       form.append("steamid", steamid);
       const sessionkey = SteamCrypto.generateSessionKey();
-      const encrypted_loginkey = SteamCrypto.symmetricEncryptWithHmacIv(
-        webNonce,
-        sessionkey.plain
-      );
+      const encrypted_loginkey = SteamCrypto.symmetricEncryptWithHmacIv(webNonce, sessionkey.plain);
       form.append("encrypted_loginkey", encrypted_loginkey);
       form.append("sessionkey", sessionkey.encrypted);
 
@@ -82,11 +73,7 @@ export async function login(
 /**
  * Get games with cards left to farm
  */
-export async function getFarmingData(
-  steamid: string,
-  cookie: Cookie,
-  proxy: Proxy
-): Promise<FarmData[]> {
+export async function getFarmingData(steamid: string, cookie: Cookie, proxy: Proxy): Promise<FarmData[]> {
   const url = `https://steamcommunity.com/profiles/${steamid}/badges`;
   const serializedCookie = serializeCookie(cookie);
   const operation = retry.operation(operationOptions);
@@ -95,9 +82,7 @@ export async function getFarmingData(
     url,
     method: "GET",
     timeout: Number(process.env.STEAMCOMMUNITY_TIMEOUT),
-    httpsAgent: new HttpsAgent(
-      `http://ccqdjjhc-dest:yt4v7cxsvnv6@${proxy.ip}:${proxy.port}`
-    ),
+    httpsAgent: new HttpsAgent(`http://ccqdjjhc-dest:yt4v7cxsvnv6@${proxy.ip}:${proxy.port}`),
     headers: {
       Cookie: serializedCookie,
     },
@@ -133,11 +118,7 @@ export async function getFarmingData(
 /**
  * Get cards inventory
  */
-export async function getCardsInventory(
-  steamid: string,
-  cookie: Cookie,
-  proxy: Proxy
-): Promise<Item[]> {
+export async function getCardsInventory(steamid: string, cookie: Cookie, proxy: Proxy): Promise<Item[]> {
   const contextId = "6"; // trading cards
   const url = `https://steamcommunity.com/profiles/${steamid}/inventory/json/753/${contextId}`;
 
@@ -148,9 +129,7 @@ export async function getCardsInventory(
     url,
     method: "GET",
     timeout: Number(process.env.STEAMCOMMUNITY_TIMEOUT),
-    httpsAgent: new HttpsAgent(
-      `http://ccqdjjhc-dest:yt4v7cxsvnv6@${proxy.ip}:${proxy.port}`
-    ),
+    httpsAgent: new HttpsAgent(`http://ccqdjjhc-dest:yt4v7cxsvnv6@${proxy.ip}:${proxy.port}`),
     headers: {
       Cookie: serializedCookie,
     },
