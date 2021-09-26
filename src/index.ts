@@ -5,7 +5,8 @@ import Crypto from "crypto";
 import cheerio from "cheerio";
 import SteamCrypto from "steam-crypto-ts";
 const HttpsAgent = require("https-proxy-agent");
-import { Proxy, Cookie, FarmData, Item, Inventory } from "./types";
+// import types
+import { Cookie, FarmData, Inventory, Item, Proxy } from "./@types/";
 
 axios.defaults.headers = {
   "User-Agent": "Valve/Steam HTTP Client 1.0",
@@ -17,7 +18,7 @@ const operationOptions: retry.OperationOptions = {
 };
 
 /**
- * Login via steam web to obtain a cookie
+ * Login via steam web to obtain a cookie session
  */
 export async function login(steamid: string, webNonce: string, proxy: Proxy): Promise<Cookie> {
   const url = "https://api.steampowered.com/ISteamUserAuth/AuthenticateUser/v1";
