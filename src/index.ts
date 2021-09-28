@@ -79,12 +79,9 @@ export default class Steamcommunity {
           }
 
           if (e.response) {
-            console.error(`weblogin failed: ${e.response.statusText}`);
-            return reject(`weblogin failed`);
+            return reject(`weblogin failed: ${e.response.statusText}`);
           }
-
-          console.error(e);
-          reject("weblogin failed");
+          reject(e);
         }
       });
     });
@@ -125,12 +122,10 @@ export default class Steamcommunity {
           }
 
           if (e.response) {
-            console.error(`farmdata failed: ${e.response.statusText}`);
-            return reject(`farmdata failed`);
+            return reject(`farmdata failed: ${e.response.statusText}`);
           }
 
-          console.error(e);
-          reject("farmdata failed");
+          reject(e);
         }
       });
     });
@@ -174,12 +169,9 @@ export default class Steamcommunity {
           }
 
           if (e.response) {
-            console.error(`inventory failed: ${e.response.statusText}`);
-            return reject(`inventory failed`);
+            return reject(`inventory failed: ${e.response.statusText}`);
           }
-
-          console.error(e);
-          reject("inventory failed");
+          reject(e);
         }
       });
     });
