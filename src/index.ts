@@ -4,7 +4,7 @@ import retry from "retry";
 import Crypto from "crypto";
 import cheerio from "cheerio";
 import SteamCrypto from "steam-crypto-ts";
-const HttpsAgent = require("https-proxy-agent");
+import { SocksProxyAgent } from "socks-proxy-agent";
 // import types
 import { Cookie, FarmData, Inventory, Item, Proxy } from "./@types/";
 
@@ -44,7 +44,7 @@ export default class Steamcommunity {
       url,
       method: "POST",
       timeout: this.timeout,
-      httpsAgent: new HttpsAgent(`http://${this.proxy.ip}:${this.proxy.port}`),
+      httpsAgent: new SocksProxyAgent(`socks://${this.proxy.ip}:${this.proxy.port}`),
     };
 
     return new Promise((resolve, reject) => {
@@ -103,7 +103,7 @@ export default class Steamcommunity {
       url,
       method: "GET",
       timeout: this.timeout,
-      httpsAgent: new HttpsAgent(`http://${this.proxy.ip}:${this.proxy.port}`),
+      httpsAgent: new SocksProxyAgent(`socks://${this.proxy.ip}:${this.proxy.port}`),
       headers: {
         Cookie: this.cookie,
       },
@@ -151,7 +151,7 @@ export default class Steamcommunity {
       url,
       method: "GET",
       timeout: this.timeout,
-      httpsAgent: new HttpsAgent(`http://${this.proxy.ip}:${this.proxy.port}`),
+      httpsAgent: new SocksProxyAgent(`socks://${this.proxy.ip}:${this.proxy.port}`),
       headers: {
         Cookie: this.cookie,
       },

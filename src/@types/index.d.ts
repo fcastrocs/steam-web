@@ -1,15 +1,34 @@
-/**
- * Login via steam web to obtain a cookie session
- */
-export declare function login(steamid: string, webNonce: string, proxy: Proxy): Promise<Cookie>;
-/**
- * Get games with cards left to farm
- */
-export declare function getFarmingData(steamid: string, cookie: Cookie, proxy: Proxy): Promise<FarmData[]>;
-/**
- * Get cards inventory
- */
-export declare function getCardsInventory(steamid: string, cookie: Cookie, proxy: Proxy): Promise<Item[]>;
+export default class Steamcommunity {
+  private steamid;
+  private webNonce;
+  private proxy;
+  private isLoggedIn;
+  private timeout;
+  private cookie;
+  constructor(steamid: string, webNonce: string, proxy: Proxy, timeout: number);
+  /**
+   * Login via steam web to obtain a cookie session
+   * @returns cookie
+   */
+  login(): Promise<string>;
+  /**
+   * Get games with cards left to farm
+   */
+  getFarmingData(): Promise<FarmData[]>;
+  /**
+   * Get cards inventory
+   */
+  getCardsInventory(): Promise<Item[]>;
+  /**
+   * Helper function for getCardsInventory
+   */
+  private parseItems;
+  /**
+   * Helper function for getFarmingData
+   */
+  private parseFarmingData;
+  private stringifyCookie;
+}
 
 export interface FarmData {
   name: string;
