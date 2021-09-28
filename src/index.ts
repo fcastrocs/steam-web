@@ -13,7 +13,7 @@ axios.defaults.headers = {
 };
 
 const operationOptions: retry.OperationOptions = {
-  retries: Number(process.env.STEAMACCOUNT_RECCONNECT_RETRIES),
+  retries: 2,
   maxTimeout: 2000,
 };
 
