@@ -21,11 +21,10 @@ export default class Steamcommunity {
   private steamid: string;
   private webNonce: string;
   private proxy: Proxy;
-  private isLoggedIn = false;
   private timeout = 5000;
-  private cookie: string;
+  private _cookie: Cookie;
 
-  constructor(steamid: string, webNonce: string, proxy: Proxy, timeout: number) {
+  constructor(steamid: string, proxy: Proxy, timeout: number, webNonce?: string) {
     this.steamid = steamid;
     this.webNonce = webNonce;
     this.proxy = proxy;
@@ -33,10 +32,19 @@ export default class Steamcommunity {
   }
 
   /**
+   * Set cookie from JSON string
+   */
+  public set cookie(cookie: string) {
+    this._cookie = JSON.parse(cookie);
+    axios.defaults.headers.Cookie = this.stringifyCookie(this._cookie);
+  }
+
+  /**
    * Login via steam web to obtain a cookie session
    * @returns cookie
    */
   async login(): Promise<string> {
+    if (!this.webNonce) throw Error("WebNonce is needed.");
     const url = "https://api.steampowered.com/ISteamUserAuth/AuthenticateUser/v1";
     const operation = retry.operation(operationOptions);
 
@@ -62,13 +70,11 @@ export default class Steamcommunity {
 
         try {
           const res = await axios(config);
-          const cookie: Cookie = {
+          this._cookie = {
             sessionid: Crypto.randomBytes(12).toString("hex"),
             steamLoginSecure: res.data.authenticateuser.tokensecure,
           };
-          this.isLoggedIn = true;
-          this.cookie = this.stringifyCookie(cookie);
-          resolve(this.cookie);
+          resolve(JSON.stringify(this._cookie));
         } catch (e) {
           if (e.response && e.response.status === 429) {
             return reject("RateLimitExceeded");
@@ -91,7 +97,7 @@ export default class Steamcommunity {
    * Get games with cards left to farm
    */
   async getFarmingData(): Promise<FarmData[]> {
-    if (!this.isLoggedIn) throw Error("not logged in");
+    if (!this._cookie) throw Error("Cookie is not set.");
 
     const url = `https://steamcommunity.com/profiles/${this.steamid}/badges`;
     const operation = retry.operation(operationOptions);
@@ -101,9 +107,6 @@ export default class Steamcommunity {
       method: "GET",
       timeout: this.timeout,
       httpsAgent: new SocksProxyAgent(`socks://${this.proxy.ip}:${this.proxy.port}`),
-      headers: {
-        Cookie: this.cookie,
-      },
     };
 
     return new Promise((resolve, reject) => {
@@ -135,8 +138,7 @@ export default class Steamcommunity {
    * Get cards inventory
    */
   async getCardsInventory(): Promise<Item[]> {
-    if (!this.isLoggedIn) throw Error("not logged in");
-
+    if (!this._cookie) throw Error("Cookie is not set.");
     const contextId = "6"; // trading cards
     const url = `https://steamcommunity.com/profiles/${this.steamid}/inventory/json/753/${contextId}`;
 
@@ -147,9 +149,6 @@ export default class Steamcommunity {
       method: "GET",
       timeout: this.timeout,
       httpsAgent: new SocksProxyAgent(`socks://${this.proxy.ip}:${this.proxy.port}`),
-      headers: {
-        Cookie: this.cookie,
-      },
     };
 
     return new Promise((resolve, reject) => {
@@ -180,22 +179,20 @@ export default class Steamcommunity {
   /**
    * Change account profile avatar
    */
-  async changeAvatar(avatar: BinaryData, steamId: string, sessionid: string): Promise<void> {
-    const operation = retry.operation(operationOptions);
+  async changeAvatar(avatar: BinaryData): Promise<void> {
+    if (!this._cookie) throw Error("Cookie is not set.");
 
+    const operation = retry.operation(operationOptions);
     const config: AxiosRequestConfig = {
       url: "https://steamcommunity.com/actions/FileUploader/",
       method: "POST",
       timeout: this.timeout,
       httpsAgent: new SocksProxyAgent(`socks://${this.proxy.ip}:${this.proxy.port}`),
-      headers: {
-        Cookie: this.cookie,
-      },
       data: {
         avatar,
         type: "player_avatar_image",
-        sId: steamId,
-        sessionid: sessionid,
+        sId: this.steamid,
+        sessionid: this._cookie.sessionid,
         doSub: 1,
         json: 1,
       },
