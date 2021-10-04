@@ -196,25 +196,17 @@ export default class Steamcommunity {
       timeout: this.timeout,
       httpsAgent: new SocksProxyAgent(`socks://${this.proxy.ip}:${this.proxy.port}`),
       headers: { "Content-Type": `multipart/form-data; boundary=${formData.getBoundary()}` },
-      data: {
-        avatar,
-        type: "player_avatar_image",
-        sId: this.steamid,
-        sessionid: this._cookie.sessionid,
-        doSub: 1,
-        json: 1,
-      },
+      data: formData,
     };
 
     return new Promise((resolve, reject) => {
       operation.attempt(async () => {
         try {
           const res = await axios(config);
-          console.log(res);
-          if (res.data.images.full) {
+          if (res.data.success) {
             resolve(res.data.images.full);
           } else {
-            reject(res);
+            reject(res.data.message);
           }
         } catch (e) {
           reject(e);
