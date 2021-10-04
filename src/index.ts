@@ -6,7 +6,7 @@ import cheerio from "cheerio";
 import SteamCrypto from "steam-crypto-ts";
 import { SocksProxyAgent } from "socks-proxy-agent";
 // import types
-import { Cookie, FarmData, Inventory, Item, Proxy } from "./@types/";
+import { Avatar, Cookie, FarmData, Inventory, Item, Proxy } from "./@types/";
 
 axios.defaults.headers = {
   "User-Agent": "Valve/Steam HTTP Client 1.0",
@@ -179,10 +179,12 @@ export default class Steamcommunity {
   /**
    * Change account profile avatar
    */
-  async changeAvatar(avatar: BinaryData): Promise<string> {
+  async changeAvatar(avatar: Avatar): Promise<string> {
     if (!this._cookie) throw Error("Cookie is not set.");
+
+    const file = new File([avatar.blob], "avatar", { type: avatar.type });
     const formData = new FormData();
-    formData.append("avatar", avatar);
+    formData.append("avatar", file);
     formData.append("type", "player_avatar_image");
     formData.append("sId", this.steamid);
     formData.append("sessionid", this._cookie.sessionid);

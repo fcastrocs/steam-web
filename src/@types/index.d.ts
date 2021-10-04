@@ -25,7 +25,7 @@ export default class Steamcommunity {
   /**
    * Change account profile avatar
    */
-  changeAvatar(avatar: BinaryData): Promise<string>;
+  changeAvatar(avatar: Avatar): Promise<string>;
   /**
    * Helper function for getCardsInventory
    */
@@ -82,4 +82,9 @@ export interface Inventory {
 export interface Proxy {
   ip: string;
   port: number;
+}
+
+export interface Avatar {
+  blob: string;
+  type: string;
 }
