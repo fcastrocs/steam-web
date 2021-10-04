@@ -2,10 +2,13 @@ export default class Steamcommunity {
   private steamid;
   private webNonce;
   private proxy;
-  private isLoggedIn;
   private timeout;
-  private cookie;
-  constructor(steamid: string, webNonce: string, proxy: Proxy, timeout: number);
+  private _cookie;
+  constructor(steamid: string, proxy: Proxy, timeout: number, webNonce?: string);
+  /**
+   * Set cookie from JSON string
+   */
+  set cookie(cookie: string);
   /**
    * Login via steam web to obtain a cookie session
    * @returns cookie
@@ -19,6 +22,10 @@ export default class Steamcommunity {
    * Get cards inventory
    */
   getCardsInventory(): Promise<Item[]>;
+  /**
+   * Change account profile avatar
+   */
+  changeAvatar(avatar: BinaryData): Promise<void>;
   /**
    * Helper function for getCardsInventory
    */
