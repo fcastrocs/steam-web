@@ -179,7 +179,7 @@ export default class Steamcommunity {
   /**
    * Change account profile avatar
    */
-  async changeAvatar(avatar: BinaryData): Promise<void> {
+  async changeAvatar(avatar: BinaryData): Promise<string> {
     if (!this._cookie) throw Error("Cookie is not set.");
 
     const operation = retry.operation(operationOptions);
@@ -201,10 +201,13 @@ export default class Steamcommunity {
     return new Promise((resolve, reject) => {
       operation.attempt(async () => {
         try {
-          await axios(config);
-          resolve();
+          const res = await axios(config);
+          if (res.data.images.full) {
+            resolve(res.data.images.full);
+          } else {
+            reject(res);
+          }
         } catch (e) {
-          console.error(e);
           reject(e);
         }
       });

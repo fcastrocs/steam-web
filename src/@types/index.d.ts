@@ -25,7 +25,7 @@ export default class Steamcommunity {
   /**
    * Change account profile avatar
    */
-  changeAvatar(avatar: BinaryData): Promise<void>;
+  changeAvatar(avatar: BinaryData): Promise<string>;
   /**
    * Helper function for getCardsInventory
    */
