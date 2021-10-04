@@ -183,7 +183,7 @@ export default class Steamcommunity {
   async changeAvatar(avatar: Avatar): Promise<string> {
     if (!this._cookie) throw Error("Cookie is not set.");
 
-    const blob = new Blob([avatar.blob], { type: avatar.type });
+    const blob = new Blob([Buffer.from(avatar.blob, "binary")], { type: avatar.type });
     const formData = new FormData();
     formData.append("avatar", blob);
     formData.append("type", "player_avatar_image");
