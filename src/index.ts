@@ -181,6 +181,13 @@ export default class Steamcommunity {
    */
   async changeAvatar(avatar: BinaryData): Promise<string> {
     if (!this._cookie) throw Error("Cookie is not set.");
+    const formData = new FormData();
+    formData.append("avatar", avatar);
+    formData.append("type", "player_avatar_image");
+    formData.append("sId", this.steamid);
+    formData.append("sessionid", this._cookie.sessionid);
+    formData.append("doSub", 1);
+    formData.append("json", 1);
 
     const operation = retry.operation(operationOptions);
     const config: AxiosRequestConfig = {
@@ -188,6 +195,7 @@ export default class Steamcommunity {
       method: "POST",
       timeout: this.timeout,
       httpsAgent: new SocksProxyAgent(`socks://${this.proxy.ip}:${this.proxy.port}`),
+      headers: { "Content-Type": "multipart/form-data" },
       data: {
         avatar,
         type: "player_avatar_image",
@@ -202,6 +210,7 @@ export default class Steamcommunity {
       operation.attempt(async () => {
         try {
           const res = await axios(config);
+          console.log(res);
           if (res.data.images.full) {
             resolve(res.data.images.full);
           } else {
