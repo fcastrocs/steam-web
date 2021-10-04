@@ -1,4 +1,4 @@
-import { Blob } from "node:buffer";
+import { Blob } from "buffer";
 import axios, { AxiosRequestConfig } from "axios";
 import FormData from "form-data";
 import retry from "retry";
