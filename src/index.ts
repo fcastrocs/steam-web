@@ -1,4 +1,3 @@
-import { Blob } from "buffer";
 import axios, { AxiosRequestConfig } from "axios";
 import FormData from "form-data";
 import retry from "retry";
@@ -183,9 +182,11 @@ export default class Steamcommunity {
   async changeAvatar(avatar: Avatar): Promise<string> {
     if (!this._cookie) throw Error("Cookie is not set.");
 
-    const blob = new Blob([Buffer.from(avatar.blob, "binary")], { type: avatar.type });
     const formData = new FormData();
-    formData.append("avatar", blob);
+    formData.append("avatar", {
+      value: Buffer.from(avatar.blob, "binary"),
+      options: { filename: "blob", contentType: avatar.type },
+    });
     formData.append("type", "player_avatar_image");
     formData.append("sId", this.steamid);
     formData.append("sessionid", this._cookie.sessionid);
