@@ -178,6 +178,43 @@ export default class Steamcommunity {
   }
 
   /**
+   * Change account profile avatar
+   */
+  async changeAvatar(avatar: BinaryData, steamId: string, sessionid: string): Promise<void> {
+    const operation = retry.operation(operationOptions);
+
+    const config: AxiosRequestConfig = {
+      url: "https://steamcommunity.com/actions/FileUploader/",
+      method: "POST",
+      timeout: this.timeout,
+      httpsAgent: new SocksProxyAgent(`socks://${this.proxy.ip}:${this.proxy.port}`),
+      headers: {
+        Cookie: this.cookie,
+      },
+      data: {
+        avatar,
+        type: "player_avatar_image",
+        sId: steamId,
+        sessionid: sessionid,
+        doSub: 1,
+        json: 1,
+      },
+    };
+
+    return new Promise((resolve, reject) => {
+      operation.attempt(async () => {
+        try {
+          await axios(config);
+          resolve();
+        } catch (e) {
+          console.error(e);
+          reject(e);
+        }
+      });
+    });
+  }
+
+  /**
    * Helper function for getCardsInventory
    */
   private parseItems(data: Inventory, contextId: string): Item[] {
