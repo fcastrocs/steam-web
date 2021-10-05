@@ -85,6 +85,6 @@ export interface Proxy {
 }
 
 export interface Avatar {
-  blob: string;
+  buffer: Buffer;
   type: string;
 }

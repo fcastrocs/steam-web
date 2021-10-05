@@ -183,7 +183,7 @@ export default class Steamcommunity {
     if (!this._cookie) throw Error("Cookie is not set.");
 
     const formData = new FormData();
-    formData.append("avatar", Buffer.from(avatar.blob, "binary"), { filename: "blob", contentType: avatar.type });
+    formData.append("avatar", avatar.buffer, { filename: "blob", contentType: avatar.type });
     formData.append("type", "player_avatar_image");
     formData.append("sId", this.steamid);
     formData.append("sessionid", this._cookie.sessionid);
