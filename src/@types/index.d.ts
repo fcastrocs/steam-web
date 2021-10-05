@@ -27,6 +27,10 @@ export default class Steamcommunity {
    */
   changeAvatar(avatar: Avatar): Promise<string>;
   /**
+   * Clear account's previous aliases
+   */
+  clearAliases(): Promise<void>;
+  /**
    * Helper function for getCardsInventory
    */
   private parseItems;

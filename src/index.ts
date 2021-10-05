@@ -217,6 +217,33 @@ export default class Steamcommunity {
   }
 
   /**
+   * Clear account's previous aliases
+   */
+  async clearAliases(): Promise<void> {
+    if (!this._cookie) throw Error("Cookie is not set.");
+
+    const operation = retry.operation(operationOptions);
+    const config: AxiosRequestConfig = {
+      url: `https://steamcommunity.com/id/${this.steamid}/ajaxclearaliashistory/`,
+      method: "POST",
+      timeout: this.timeout,
+      httpsAgent: new SocksProxyAgent(`socks://${this.proxy.ip}:${this.proxy.port}`),
+      data: { sessionid: this._cookie.sessionid },
+    };
+
+    return new Promise((resolve, reject) => {
+      operation.attempt(async () => {
+        try {
+          const res = await axios(config);
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
+      });
+    });
+  }
+
+  /**
    * Helper function for getCardsInventory
    */
   private parseItems(data: Inventory, contextId: string): Item[] {
