@@ -230,6 +230,7 @@ export default class Steamcommunity {
       method: "POST",
       timeout: this.timeout,
       httpsAgent: new SocksProxyAgent(`socks://${this.proxy.ip}:${this.proxy.port}`),
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
       data: formData,
     };
 
