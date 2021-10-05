@@ -1,5 +1,6 @@
 import axios, { AxiosRequestConfig } from "axios";
-import FormData, { from } from "form-data";
+import querystring from "querystring";
+import FormData from "form-data";
 import retry from "retry";
 import Crypto from "crypto";
 import cheerio from "cheerio";
@@ -221,8 +222,8 @@ export default class Steamcommunity {
    */
   async clearAliases(): Promise<void> {
     if (!this._cookie) throw Error("Cookie is not set.");
-    const formData = new FormData();
-    formData.append("sessionid", this._cookie.sessionid);
+    const params = new URLSearchParams();
+    params.append("sessionid", this._cookie.sessionid);
 
     const operation = retry.operation(operationOptions);
     const config: AxiosRequestConfig = {
@@ -231,7 +232,7 @@ export default class Steamcommunity {
       timeout: this.timeout,
       httpsAgent: new SocksProxyAgent(`socks://${this.proxy.ip}:${this.proxy.port}`),
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      data: formData,
+      data: params,
     };
 
     return new Promise((resolve, reject) => {
