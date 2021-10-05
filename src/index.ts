@@ -224,7 +224,7 @@ export default class Steamcommunity {
 
     const operation = retry.operation(operationOptions);
     const config: AxiosRequestConfig = {
-      url: `https://steamcommunity.com/id/${this.steamid}/ajaxclearaliashistory/`,
+      url: `https://steamcommunity.com/profiles/${this.steamid}/ajaxclearaliashistory/`,
       method: "POST",
       timeout: this.timeout,
       httpsAgent: new SocksProxyAgent(`socks://${this.proxy.ip}:${this.proxy.port}`),
