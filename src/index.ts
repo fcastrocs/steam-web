@@ -263,7 +263,7 @@ export default class Steamcommunity {
       }
     }
 
-    formData.append("Privacy", Privacy);
+    formData.append("Privacy", JSON.stringify(Privacy));
     formData.append("eCommentPermission", settings.eCommentPermission);
 
     const operation = retry.operation(operationOptions);
@@ -273,6 +273,7 @@ export default class Steamcommunity {
       timeout: this.timeout,
       httpsAgent: new SocksProxyAgent(`socks://${this.proxy.ip}:${this.proxy.port}`),
       data: formData,
+      headers: formData.getHeaders(),
     };
 
     return new Promise((resolve, reject) => {
