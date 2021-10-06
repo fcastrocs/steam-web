@@ -100,9 +100,9 @@ export interface Avatar {
 export interface PrivacySettings {
   PrivacyProfile: 3 | 2 | 1;
   PrivacyInventory: 3 | 2 | 1;
-  PrivacyInventoryGifts: 3 | 2 | 1;
+  PrivacyInventoryGifts: 3 | 1;
   PrivacyOwnedGames: 3 | 2 | 1;
-  PrivacyPlaytime: 3 | 2 | 1;
+  PrivacyPlaytime: 3 | 1;
   PrivacyFriendsList: 3 | 2 | 1;
   eCommentPermission: 3 | 2 | 1;
 }
