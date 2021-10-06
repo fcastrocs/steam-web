@@ -7,7 +7,7 @@ import cheerio from "cheerio";
 import SteamCrypto from "steam-crypto-ts";
 import { SocksProxyAgent } from "socks-proxy-agent";
 // import types
-import { Avatar, Cookie, FarmData, Inventory, Item, Proxy } from "./@types/";
+import { Avatar, Cookie, FarmData, Inventory, Item, PrivacySettings, Proxy } from "./@types/";
 
 axios.defaults.headers = {
   "User-Agent": "Valve/Steam HTTP Client 1.0",
@@ -233,6 +233,49 @@ export default class Steamcommunity {
       httpsAgent: new SocksProxyAgent(`socks://${this.proxy.ip}:${this.proxy.port}`),
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       data: params,
+    };
+
+    return new Promise((resolve, reject) => {
+      operation.attempt(async () => {
+        try {
+          const res = await axios(config);
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
+      });
+    });
+  }
+
+  /**
+   * Change account's privacy settings
+   */
+  async changePrivacy(settings: PrivacySettings): Promise<void> {
+    if (!this._cookie) throw Error("Cookie is not set.");
+    const formData = new FormData();
+    formData.append("sessionid", this._cookie.sessionid);
+
+    const Privacy: { [key: string]: number } = {};
+
+    for (const [key, value] of Object.entries(settings)) {
+      if (key !== "eCommentPermission") {
+        Privacy[key] = value;
+      }
+    }
+
+    // fix eCommentPermission value, because valve did not keep values consistent
+    const eCommentPermission = settings.eCommentPermission > 1 ? settings.eCommentPermission - 2 : 2;
+
+    formData.append("Privacy", Privacy);
+    formData.append("eCommentPermission", eCommentPermission);
+
+    const operation = retry.operation(operationOptions);
+    const config: AxiosRequestConfig = {
+      url: `https://steamcommunity.com/profiles/${this.steamid}/ajaxsetprivacy/`,
+      method: "POST",
+      timeout: this.timeout,
+      httpsAgent: new SocksProxyAgent(`socks://${this.proxy.ip}:${this.proxy.port}`),
+      data: formData,
     };
 
     return new Promise((resolve, reject) => {

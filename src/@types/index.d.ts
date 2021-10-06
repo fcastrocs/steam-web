@@ -31,6 +31,10 @@ export default class Steamcommunity {
    */
   clearAliases(): Promise<void>;
   /**
+   * Change account's privacy settings
+   */
+  changePrivacy(settings: PrivacySettings): Promise<void>;
+  /**
    * Helper function for getCardsInventory
    */
   private parseItems;
@@ -91,4 +95,14 @@ export interface Proxy {
 export interface Avatar {
   buffer: Buffer;
   type: string;
+}
+
+export interface PrivacySettings {
+  PrivacyProfile: 3 | 2 | 1;
+  PrivacyInventory: 3 | 2 | 1;
+  PrivacyInventoryGifts: 3 | 2 | 1;
+  PrivacyOwnedGames: 3 | 2 | 1;
+  PrivacyPlaytime: 3 | 2 | 1;
+  PrivacyFriendsList: 3 | 2 | 1;
+  eCommentPermission: 3 | 2 | 1;
 }
