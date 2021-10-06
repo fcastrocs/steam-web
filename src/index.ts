@@ -263,11 +263,8 @@ export default class Steamcommunity {
       }
     }
 
-    // fix eCommentPermission value, because valve did not keep values consistent
-    const eCommentPermission = settings.eCommentPermission > 1 ? settings.eCommentPermission - 2 : 2;
-
     formData.append("Privacy", Privacy);
-    formData.append("eCommentPermission", eCommentPermission);
+    formData.append("eCommentPermission", settings.eCommentPermission);
 
     const operation = retry.operation(operationOptions);
     const config: AxiosRequestConfig = {
