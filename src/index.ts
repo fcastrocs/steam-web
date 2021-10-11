@@ -1,13 +1,12 @@
 import axios, { AxiosRequestConfig } from "axios";
-import querystring from "querystring";
 import FormData from "form-data";
 import retry from "retry";
 import Crypto from "crypto";
 import cheerio from "cheerio";
 import SteamCrypto from "steam-crypto-ts";
-import { SocksProxyAgent } from "socks-proxy-agent";
+import { SocksProxyAgent, SocksProxyAgentOptions } from "socks-proxy-agent";
 // import types
-import { Avatar, Cookie, FarmData, Inventory, Item, PrivacySettings, Proxy } from "./@types/";
+import { Avatar, Cookie, FarmData, Inventory, Item, PrivacySettings } from "./@types/";
 
 axios.defaults.headers = {
   "User-Agent": "Valve/Steam HTTP Client 1.0",
@@ -21,14 +20,14 @@ const operationOptions: retry.OperationOptions = {
 export default class Steamcommunity {
   private steamid: string;
   private webNonce: string;
-  private proxy: Proxy;
+  private agent: SocksProxyAgent;
   private timeout = 5000;
   private _cookie: Cookie;
 
-  constructor(steamid: string, proxy: Proxy, timeout: number, webNonce?: string) {
+  constructor(steamid: string, agentOptions: SocksProxyAgentOptions, timeout: number, webNonce?: string) {
     this.steamid = steamid;
     this.webNonce = webNonce;
-    this.proxy = proxy;
+    this.agent = new SocksProxyAgent(agentOptions);
     this.timeout = timeout;
   }
 
@@ -53,7 +52,7 @@ export default class Steamcommunity {
       url,
       method: "POST",
       timeout: this.timeout,
-      httpsAgent: new SocksProxyAgent(`socks://${this.proxy.ip}:${this.proxy.port}`),
+      httpsAgent: this.agent,
     };
 
     return new Promise((resolve, reject) => {
@@ -107,7 +106,7 @@ export default class Steamcommunity {
       url,
       method: "GET",
       timeout: this.timeout,
-      httpsAgent: new SocksProxyAgent(`socks://${this.proxy.ip}:${this.proxy.port}`),
+      httpsAgent: this.agent,
     };
 
     return new Promise((resolve, reject) => {
@@ -149,7 +148,7 @@ export default class Steamcommunity {
       url,
       method: "GET",
       timeout: this.timeout,
-      httpsAgent: new SocksProxyAgent(`socks://${this.proxy.ip}:${this.proxy.port}`),
+      httpsAgent: this.agent,
     };
 
     return new Promise((resolve, reject) => {
@@ -196,7 +195,7 @@ export default class Steamcommunity {
       url: "https://steamcommunity.com/actions/FileUploader/",
       method: "POST",
       timeout: this.timeout,
-      httpsAgent: new SocksProxyAgent(`socks://${this.proxy.ip}:${this.proxy.port}`),
+      httpsAgent: this.agent,
       headers: { "Content-Type": `multipart/form-data; boundary=${formData.getBoundary()}` },
       data: formData,
     };
@@ -230,7 +229,7 @@ export default class Steamcommunity {
       url: `https://steamcommunity.com/profiles/${this.steamid}/ajaxclearaliashistory/`,
       method: "POST",
       timeout: this.timeout,
-      httpsAgent: new SocksProxyAgent(`socks://${this.proxy.ip}:${this.proxy.port}`),
+      httpsAgent: this.agent,
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       data: params,
     };
@@ -271,7 +270,7 @@ export default class Steamcommunity {
       url: `https://steamcommunity.com/profiles/${this.steamid}/ajaxsetprivacy/`,
       method: "POST",
       timeout: this.timeout,
-      httpsAgent: new SocksProxyAgent(`socks://${this.proxy.ip}:${this.proxy.port}`),
+      httpsAgent: this.agent,
       data: formData,
       headers: formData.getHeaders(),
     };
