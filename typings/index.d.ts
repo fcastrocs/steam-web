@@ -6,7 +6,6 @@ export default class Steamcommunity {
   private agent;
   private timeout;
   private _cookie;
-
   constructor(steamid: string, agentOptions: SocksProxyAgentOptions, timeout: number, webNonce?: string);
   /**
    * Set cookie from JSON string

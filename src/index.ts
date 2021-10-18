@@ -1,20 +1,20 @@
 import axios, { AxiosRequestConfig } from "axios";
 import FormData from "form-data";
-import retry from "retry";
+import retry from "@machiavelli/retry";
 import Crypto from "crypto";
 import cheerio from "cheerio";
 import SteamCrypto from "steam-crypto-ts";
 import { SocksProxyAgent, SocksProxyAgentOptions } from "socks-proxy-agent";
-// import types
-import { Avatar, Cookie, FarmData, Inventory, Item, PrivacySettings } from "./@types/";
+import { Cookie, FarmData, Item, Inventory, Avatar, PrivacySettings } from "../typings";
 
 axios.defaults.headers = {
   "User-Agent": "Valve/Steam HTTP Client 1.0",
 };
 
-const operationOptions: retry.OperationOptions = {
+const operationOptions = {
   retries: 2,
-  maxTimeout: 2000,
+  interval: 2000,
+  noDelay: true,
 };
 
 export default class Steamcommunity {
@@ -46,47 +46,49 @@ export default class Steamcommunity {
   async login(): Promise<string> {
     if (!this.webNonce) throw Error("WebNonce is needed.");
     const url = "https://api.steampowered.com/ISteamUserAuth/AuthenticateUser/v1";
-    const operation = retry.operation(operationOptions);
-
-    const config: AxiosRequestConfig = {
+    const operation = new retry(operationOptions);
+    const axiosConfig: AxiosRequestConfig = {
       url,
       method: "POST",
       timeout: this.timeout,
       httpsAgent: this.agent,
     };
 
+    const _login = async () => {
+      const form = new FormData();
+      form.append("steamid", this.steamid);
+      const sessionkey = SteamCrypto.generateSessionKey();
+      const encrypted_loginkey = SteamCrypto.symmetricEncryptWithHmacIv(this.webNonce, sessionkey.plain);
+      form.append("encrypted_loginkey", encrypted_loginkey);
+      form.append("sessionkey", sessionkey.encrypted);
+
+      axiosConfig.data = form;
+      axiosConfig.headers = form.getHeaders();
+
+      const res = await axios(axiosConfig);
+      this._cookie = {
+        sessionid: Crypto.randomBytes(12).toString("hex"),
+        steamLoginSecure: res.data.authenticateuser.tokensecure,
+      };
+      return JSON.stringify(this._cookie);
+    };
+
     return new Promise((resolve, reject) => {
       operation.attempt(async () => {
-        // regenerate form during retries otherwise will reject
-        const form = new FormData();
-        form.append("steamid", this.steamid);
-        const sessionkey = SteamCrypto.generateSessionKey();
-        const encrypted_loginkey = SteamCrypto.symmetricEncryptWithHmacIv(this.webNonce, sessionkey.plain);
-        form.append("encrypted_loginkey", encrypted_loginkey);
-        form.append("sessionkey", sessionkey.encrypted);
-
-        config.data = form;
-        config.headers = form.getHeaders();
-
         try {
-          const res = await axios(config);
-          this._cookie = {
-            sessionid: Crypto.randomBytes(12).toString("hex"),
-            steamLoginSecure: res.data.authenticateuser.tokensecure,
-          };
-          resolve(JSON.stringify(this._cookie));
+          const cookie = await _login();
+          resolve(cookie);
         } catch (e) {
+          // reject without retrying.
           if (e.response && e.response.status === 429) {
             return reject("RateLimitExceeded");
           }
 
-          if (operation.retry(e)) {
+          // retry operation
+          if (operation.retry()) {
             return;
           }
 
-          if (e.response) {
-            return reject(`weblogin failed: ${e.response.statusText}`);
-          }
           reject(e);
         }
       });
@@ -100,9 +102,8 @@ export default class Steamcommunity {
     if (!this._cookie) throw Error("Cookie is not set.");
 
     const url = `https://steamcommunity.com/profiles/${this.steamid}/badges`;
-    const operation = retry.operation(operationOptions);
-
-    const config: AxiosRequestConfig = {
+    const operation = new retry(operationOptions);
+    const axiosConfig: AxiosRequestConfig = {
       url,
       method: "GET",
       timeout: this.timeout,
@@ -112,7 +113,7 @@ export default class Steamcommunity {
     return new Promise((resolve, reject) => {
       operation.attempt(async () => {
         try {
-          const res = await axios(config);
+          const res = await axios(axiosConfig);
           const data: FarmData[] = this.parseFarmingData(res.data);
           resolve(data);
         } catch (e) {
@@ -120,7 +121,7 @@ export default class Steamcommunity {
             return reject("RateLimitExceeded");
           }
 
-          if (operation.retry(e)) {
+          if (operation.retry()) {
             return;
           }
 
@@ -141,10 +142,8 @@ export default class Steamcommunity {
     if (!this._cookie) throw Error("Cookie is not set.");
     const contextId = "6"; // trading cards
     const url = `https://steamcommunity.com/profiles/${this.steamid}/inventory/json/753/${contextId}`;
-
-    const operation = retry.operation(operationOptions);
-
-    const config: AxiosRequestConfig = {
+    const operation = new retry(operationOptions);
+    const axiosConfig: AxiosRequestConfig = {
       url,
       method: "GET",
       timeout: this.timeout,
@@ -154,7 +153,7 @@ export default class Steamcommunity {
     return new Promise((resolve, reject) => {
       operation.attempt(async () => {
         try {
-          const res = await axios(config);
+          const res = await axios(axiosConfig);
           const data: Inventory = res.data;
           const items = this.parseItems(data, contextId);
           resolve(items);
@@ -163,7 +162,7 @@ export default class Steamcommunity {
             return reject("RateLimitExceeded");
           }
 
-          if (operation.retry(e)) {
+          if (operation.retry()) {
             return;
           }
 
@@ -190,8 +189,8 @@ export default class Steamcommunity {
     formData.append("doSub", 1);
     formData.append("json", 1);
 
-    const operation = retry.operation(operationOptions);
-    const config: AxiosRequestConfig = {
+    const operation = new retry(operationOptions);
+    const axiosConfig: AxiosRequestConfig = {
       url: "https://steamcommunity.com/actions/FileUploader/",
       method: "POST",
       timeout: this.timeout,
@@ -203,13 +202,16 @@ export default class Steamcommunity {
     return new Promise((resolve, reject) => {
       operation.attempt(async () => {
         try {
-          const res = await axios(config);
+          const res = await axios(axiosConfig);
           if (res.data.success) {
             resolve(res.data.images.full);
           } else {
             reject(res.data.message);
           }
         } catch (e) {
+          if (operation.retry()) {
+            return;
+          }
           reject(e);
         }
       });
@@ -224,8 +226,8 @@ export default class Steamcommunity {
     const params = new URLSearchParams();
     params.append("sessionid", this._cookie.sessionid);
 
-    const operation = retry.operation(operationOptions);
-    const config: AxiosRequestConfig = {
+    const operation = new retry(operationOptions);
+    const axiosConfig: AxiosRequestConfig = {
       url: `https://steamcommunity.com/profiles/${this.steamid}/ajaxclearaliashistory/`,
       method: "POST",
       timeout: this.timeout,
@@ -237,9 +239,12 @@ export default class Steamcommunity {
     return new Promise((resolve, reject) => {
       operation.attempt(async () => {
         try {
-          const res = await axios(config);
+          await axios(axiosConfig);
           resolve();
         } catch (e) {
+          if (operation.retry()) {
+            return;
+          }
           reject(e);
         }
       });
@@ -265,8 +270,8 @@ export default class Steamcommunity {
     formData.append("Privacy", JSON.stringify(Privacy));
     formData.append("eCommentPermission", settings.eCommentPermission);
 
-    const operation = retry.operation(operationOptions);
-    const config: AxiosRequestConfig = {
+    const operation = new retry(operationOptions);
+    const axiosConfig: AxiosRequestConfig = {
       url: `https://steamcommunity.com/profiles/${this.steamid}/ajaxsetprivacy/`,
       method: "POST",
       timeout: this.timeout,
@@ -278,9 +283,12 @@ export default class Steamcommunity {
     return new Promise((resolve, reject) => {
       operation.attempt(async () => {
         try {
-          const res = await axios(config);
+          await axios(axiosConfig);
           resolve();
         } catch (e) {
+          if (operation.retry()) {
+            return;
+          }
           reject(e);
         }
       });

@@ -4,17 +4,13 @@
     "moduleResolution": "node",
     "module": "commonjs",
     "declaration": false,
-    "noLib": false,
-    "sourceMap": false,
-    "pretty": true,
-    "allowUnreachableCode": false,
+    "esModuleInterop": true,
     "noImplicitAny": true,
+    "allowUnreachableCode": false,
     "noImplicitReturns": true,
     "outDir": "lib/",
-    "baseUrl": "src/",
-    "esModuleInterop": true
+    "baseUrl": "src/"
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules"],
+  "include": ["src/**/*", "typings/index.d.ts"],
   "compileOnSave": false
 }
