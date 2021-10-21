@@ -40,7 +40,7 @@ export default class Steamcommunity {
   }
 
   /**
-   * Login via steam web to obtain a cookie session
+   * Login via Steam API to obtain a cookie session
    * @returns cookie
    */
   async login(): Promise<string> {
