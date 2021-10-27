@@ -4,6 +4,7 @@ import retry from "@machiavelli/retry";
 import Crypto from "crypto";
 import cheerio from "cheerio";
 import SteamCrypto from "steam-crypto-ts";
+import fetch from "node-fetch";
 import { SocksProxyAgent, SocksProxyAgentOptions } from "socks-proxy-agent";
 import { Cookie, FarmData, Item, Inventory, Avatar, PrivacySettings } from "../typings";
 
@@ -65,10 +66,11 @@ export default class Steamcommunity {
       axiosConfig.data = form;
       axiosConfig.headers = form.getHeaders();
 
-      const res = await axios(axiosConfig);
+      const res: any = await fetch(url, { body: form }).then((res) => res.json());
+
       this._cookie = {
         sessionid: Crypto.randomBytes(12).toString("hex"),
-        steamLoginSecure: res.data.authenticateuser.tokensecure,
+        steamLoginSecure: res.authenticateuser.tokensecure,
       };
       return JSON.stringify(this._cookie);
     };
