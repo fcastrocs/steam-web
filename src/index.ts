@@ -7,6 +7,7 @@ import SteamCrypto from "steam-crypto-ts";
 import fetch from "node-fetch";
 import { SocksProxyAgent, SocksProxyAgentOptions } from "socks-proxy-agent";
 import { Cookie, FarmData, Item, Inventory, Avatar, PrivacySettings } from "../typings";
+import { URLSearchParams } from "url";
 
 axios.defaults.headers = {
   "User-Agent": "Valve/Steam HTTP Client 1.0",
