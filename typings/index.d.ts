@@ -3,19 +3,17 @@ import { SocksProxyAgentOptions } from "socks-proxy-agent";
 export default class Steamcommunity {
   private steamid;
   private webNonce;
-  private agent;
-  private timeout;
   private _cookie;
   constructor(steamid: string, agentOptions: SocksProxyAgentOptions, timeout: number, webNonce?: string);
   /**
    * Set cookie from JSON string
    */
-  set cookie(cookie: string);
+  set cookie(cookie: Cookie);
   /**
-   * Login via steam web to obtain a cookie session
+   * Login via Steam API to obtain a cookie session
    * @returns cookie
    */
-  login(): Promise<string>;
+  login(): Promise<Cookie>;
   /**
    * Get games with cards left to farm
    */

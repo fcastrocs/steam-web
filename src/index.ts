@@ -1,16 +1,18 @@
-import axios, { AxiosRequestConfig } from "axios";
 import FormData from "form-data";
 import retry from "@machiavelli/retry";
 import Crypto from "crypto";
 import cheerio from "cheerio";
 import SteamCrypto from "steam-crypto-ts";
-import fetch from "node-fetch";
+import fetch, { RequestInit } from "node-fetch";
 import { SocksProxyAgent, SocksProxyAgentOptions } from "socks-proxy-agent";
 import { Cookie, FarmData, Item, Inventory, Avatar, PrivacySettings } from "../typings";
 import { URLSearchParams } from "url";
 
-axios.defaults.headers = {
-  "User-Agent": "Valve/Steam HTTP Client 1.0",
+const fetchOptions: RequestInit = {
+  headers: {
+    "User-Agent":
+      "Mozilla/5.0 (Windows; U; Windows NT 10.0; en-US; Valve Steam Client/default/1634158817; ) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36",
+  },
 };
 
 const operationOptions = {
@@ -22,39 +24,35 @@ const operationOptions = {
 export default class Steamcommunity {
   private steamid: string;
   private webNonce: string;
-  private agent: SocksProxyAgent;
-  private timeout = 5000;
   private _cookie: Cookie;
 
   constructor(steamid: string, agentOptions: SocksProxyAgentOptions, timeout: number, webNonce?: string) {
+    // add timeout to agentOptions
+    agentOptions.timeout = timeout;
+    // add timeout to fetchOptions
+    fetchOptions.timeout = timeout;
+    fetchOptions.agent = new SocksProxyAgent(agentOptions);
+
     this.steamid = steamid;
     this.webNonce = webNonce;
-    this.agent = new SocksProxyAgent(agentOptions);
-    this.timeout = timeout;
   }
 
   /**
    * Set cookie from JSON string
    */
-  public set cookie(cookie: string) {
-    this._cookie = JSON.parse(cookie);
-    axios.defaults.headers.Cookie = this.stringifyCookie(this._cookie);
+  public set cookie(cookie: Cookie) {
+    this._cookie = cookie;
+    fetchOptions.headers = { ...fetchOptions.headers, Cookie: this.stringifyCookie(this._cookie) };
   }
 
   /**
    * Login via Steam API to obtain a cookie session
    * @returns cookie
    */
-  async login(): Promise<string> {
+  async login(): Promise<Cookie> {
     if (!this.webNonce) throw Error("WebNonce is needed.");
     const url = "https://api.steampowered.com/ISteamUserAuth/AuthenticateUser/v1";
     const operation = new retry(operationOptions);
-    const axiosConfig: AxiosRequestConfig = {
-      url,
-      method: "POST",
-      timeout: this.timeout,
-      httpsAgent: this.agent,
-    };
 
     const _login = async () => {
       const form = new FormData();
@@ -64,16 +62,17 @@ export default class Steamcommunity {
       form.append("encrypted_loginkey", encrypted_loginkey);
       form.append("sessionkey", sessionkey.encrypted);
 
-      axiosConfig.data = form;
-      axiosConfig.headers = form.getHeaders();
+      const res = await fetch(url, { ...fetchOptions, method: "POST", body: form }).then((res) => {
+        if (res.ok) return res.json();
+        throw res;
+      });
 
-      const res: any = await fetch(url, { body: form }).then((res) => res.json());
-
-      this._cookie = {
+      this.cookie = {
         sessionid: Crypto.randomBytes(12).toString("hex"),
         steamLoginSecure: res.authenticateuser.tokensecure,
       };
-      return JSON.stringify(this._cookie);
+
+      return this._cookie;
     };
 
     return new Promise((resolve, reject) => {
@@ -83,7 +82,7 @@ export default class Steamcommunity {
           resolve(cookie);
         } catch (e) {
           // reject without retrying.
-          if (e.response && e.response.status === 429) {
+          if (e.status && e.status === 429) {
             return reject("RateLimitExceeded");
           }
 
@@ -106,30 +105,24 @@ export default class Steamcommunity {
 
     const url = `https://steamcommunity.com/profiles/${this.steamid}/badges`;
     const operation = new retry(operationOptions);
-    const axiosConfig: AxiosRequestConfig = {
-      url,
-      method: "GET",
-      timeout: this.timeout,
-      httpsAgent: this.agent,
-    };
 
     return new Promise((resolve, reject) => {
       operation.attempt(async () => {
         try {
-          const res = await axios(axiosConfig);
-          const data: FarmData[] = this.parseFarmingData(res.data);
+          const res = await fetch(url, fetchOptions).then((res) => {
+            if (res.ok) return res.text();
+            throw res;
+          });
+
+          const data: FarmData[] = this.parseFarmingData(res);
           resolve(data);
         } catch (e) {
-          if (e.response && e.response.status === 429) {
+          if (e.status && e.status === 429) {
             return reject("RateLimitExceeded");
           }
 
           if (operation.retry()) {
             return;
-          }
-
-          if (e.response) {
-            return reject(`farmdata failed: ${e.response.statusText}`);
           }
 
           reject(e);
@@ -146,22 +139,19 @@ export default class Steamcommunity {
     const contextId = "6"; // trading cards
     const url = `https://steamcommunity.com/profiles/${this.steamid}/inventory/json/753/${contextId}`;
     const operation = new retry(operationOptions);
-    const axiosConfig: AxiosRequestConfig = {
-      url,
-      method: "GET",
-      timeout: this.timeout,
-      httpsAgent: this.agent,
-    };
 
     return new Promise((resolve, reject) => {
       operation.attempt(async () => {
         try {
-          const res = await axios(axiosConfig);
-          const data: Inventory = res.data;
+          const data: Inventory = await fetch(url, fetchOptions).then((res) => {
+            if (res.ok) return res.json();
+            throw res;
+          });
+
           const items = this.parseItems(data, contextId);
           resolve(items);
         } catch (e) {
-          if (e.response && e.response.status === 429) {
+          if (e.status && e.status === 429) {
             return reject("RateLimitExceeded");
           }
 
@@ -169,9 +159,6 @@ export default class Steamcommunity {
             return;
           }
 
-          if (e.response) {
-            return reject(`inventory failed: ${e.response.statusText}`);
-          }
           reject(e);
         }
       });
@@ -184,37 +171,40 @@ export default class Steamcommunity {
   async changeAvatar(avatar: Avatar): Promise<string> {
     if (!this._cookie) throw Error("Cookie is not set.");
 
-    const formData = new FormData();
-    formData.append("avatar", avatar.buffer, { filename: "blob", contentType: avatar.type });
-    formData.append("type", "player_avatar_image");
-    formData.append("sId", this.steamid);
-    formData.append("sessionid", this._cookie.sessionid);
-    formData.append("doSub", 1);
-    formData.append("json", 1);
+    const url = "https://steamcommunity.com/actions/FileUploader/";
+
+    const form = new FormData();
+    form.append("avatar", avatar.buffer, { filename: "blob", contentType: avatar.type });
+    form.append("type", "player_avatar_image");
+    form.append("sId", this.steamid);
+    form.append("sessionid", this._cookie.sessionid);
+    form.append("doSub", 1);
+    form.append("json", 1);
 
     const operation = new retry(operationOptions);
-    const axiosConfig: AxiosRequestConfig = {
-      url: "https://steamcommunity.com/actions/FileUploader/",
-      method: "POST",
-      timeout: this.timeout,
-      httpsAgent: this.agent,
-      headers: { "Content-Type": `multipart/form-data; boundary=${formData.getBoundary()}` },
-      data: formData,
-    };
 
     return new Promise((resolve, reject) => {
       operation.attempt(async () => {
         try {
-          const res = await axios(axiosConfig);
-          if (res.data.success) {
-            resolve(res.data.images.full);
+          const res = await fetch(url, { ...fetchOptions, method: "POST", body: form }).then((res) => {
+            if (res.ok) return res.json();
+            throw res;
+          });
+
+          if (res.success) {
+            resolve(res.images.full);
           } else {
-            reject(res.data.message);
+            reject(`Avatar upload failed: ${res.message}`);
           }
         } catch (e) {
+          if (e.status && e.status === 429) {
+            return reject("RateLimitExceeded");
+          }
+
           if (operation.retry()) {
             return;
           }
+
           reject(e);
         }
       });
@@ -226,28 +216,27 @@ export default class Steamcommunity {
    */
   async clearAliases(): Promise<void> {
     if (!this._cookie) throw Error("Cookie is not set.");
+    const url = `https://steamcommunity.com/profiles/${this.steamid}/ajaxclearaliashistory/`;
+
     const params = new URLSearchParams();
     params.append("sessionid", this._cookie.sessionid);
-
     const operation = new retry(operationOptions);
-    const axiosConfig: AxiosRequestConfig = {
-      url: `https://steamcommunity.com/profiles/${this.steamid}/ajaxclearaliashistory/`,
-      method: "POST",
-      timeout: this.timeout,
-      httpsAgent: this.agent,
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      data: params,
-    };
 
     return new Promise((resolve, reject) => {
       operation.attempt(async () => {
         try {
-          await axios(axiosConfig);
+          const res = await fetch(url, { ...fetchOptions, method: "POST", body: params });
+          if (!res.ok) throw res;
           resolve();
         } catch (e) {
+          if (e.status && e.status === 429) {
+            return reject("RateLimitExceeded");
+          }
+
           if (operation.retry()) {
             return;
           }
+
           reject(e);
         }
       });
@@ -259,39 +248,36 @@ export default class Steamcommunity {
    */
   async changePrivacy(settings: PrivacySettings): Promise<void> {
     if (!this._cookie) throw Error("Cookie is not set.");
-    const formData = new FormData();
-    formData.append("sessionid", this._cookie.sessionid);
+    const url = `https://steamcommunity.com/profiles/${this.steamid}/ajaxsetprivacy/`;
 
+    const form = new FormData();
+    form.append("sessionid", this._cookie.sessionid);
     const Privacy: { [key: string]: number } = {};
-
     for (const [key, value] of Object.entries(settings)) {
       if (key !== "eCommentPermission") {
         Privacy[key] = value;
       }
     }
-
-    formData.append("Privacy", JSON.stringify(Privacy));
-    formData.append("eCommentPermission", settings.eCommentPermission);
+    form.append("Privacy", JSON.stringify(Privacy));
+    form.append("eCommentPermission", settings.eCommentPermission);
 
     const operation = new retry(operationOptions);
-    const axiosConfig: AxiosRequestConfig = {
-      url: `https://steamcommunity.com/profiles/${this.steamid}/ajaxsetprivacy/`,
-      method: "POST",
-      timeout: this.timeout,
-      httpsAgent: this.agent,
-      data: formData,
-      headers: formData.getHeaders(),
-    };
 
     return new Promise((resolve, reject) => {
       operation.attempt(async () => {
         try {
-          await axios(axiosConfig);
+          const res = await fetch(url, { ...fetchOptions, method: "POST", body: form });
+          if (!res.ok) throw res;
           resolve();
         } catch (e) {
+          if (e.status && e.status === 429) {
+            return reject("RateLimitExceeded");
+          }
+
           if (operation.retry()) {
             return;
           }
+
           reject(e);
         }
       });
