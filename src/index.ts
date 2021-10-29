@@ -117,8 +117,9 @@ export default class Steamcommunity {
           const data: FarmData[] = this.parseFarmingData(res);
           resolve(data);
         } catch (e) {
-          if (e.status && e.status === 429) {
-            return reject("RateLimitExceeded");
+          if (e.status) {
+            if (e.status === 429) return reject("RateLimitExceeded");
+            if (e.status === 401) return reject("Unauthorized");
           }
 
           if (operation.retry()) {
@@ -151,8 +152,9 @@ export default class Steamcommunity {
           const items = this.parseItems(data, contextId);
           resolve(items);
         } catch (e) {
-          if (e.status && e.status === 429) {
-            return reject("RateLimitExceeded");
+          if (e.status) {
+            if (e.status === 429) return reject("RateLimitExceeded");
+            if (e.status === 401) return reject("Unauthorized");
           }
 
           if (operation.retry()) {
@@ -197,8 +199,9 @@ export default class Steamcommunity {
             reject(`Avatar upload failed: ${res.message}`);
           }
         } catch (e) {
-          if (e.status && e.status === 429) {
-            return reject("RateLimitExceeded");
+          if (e.status) {
+            if (e.status === 429) return reject("RateLimitExceeded");
+            if (e.status === 401) return reject("Unauthorized");
           }
 
           if (operation.retry()) {
@@ -229,8 +232,9 @@ export default class Steamcommunity {
           if (!res.ok) throw res;
           resolve();
         } catch (e) {
-          if (e.status && e.status === 429) {
-            return reject("RateLimitExceeded");
+          if (e.status) {
+            if (e.status === 429) return reject("RateLimitExceeded");
+            if (e.status === 401) return reject("Unauthorized");
           }
 
           if (operation.retry()) {
@@ -270,8 +274,9 @@ export default class Steamcommunity {
           if (!res.ok) throw res;
           resolve();
         } catch (e) {
-          if (e.status && e.status === 429) {
-            return reject("RateLimitExceeded");
+          if (e.status) {
+            if (e.status === 429) return reject("RateLimitExceeded");
+            if (e.status === 401) return reject("Unauthorized");
           }
 
           if (operation.retry()) {
