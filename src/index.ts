@@ -2,10 +2,10 @@ import FormData from "form-data";
 import retry from "@machiavelli/retry";
 import Crypto from "crypto";
 import cheerio from "cheerio";
-import SteamCrypto from "steam-crypto-ts";
+import SteamCrypto from "steam-crypto-esm";
 import fetch, { RequestInit } from "node-fetch";
 import { SocksProxyAgent, SocksProxyAgentOptions } from "socks-proxy-agent";
-import { Cookie, FarmData, Item, Inventory, Avatar, PrivacySettings } from "../typings";
+import { Cookie, FarmData, Item, Inventory, Avatar, PrivacySettings } from "../@types";
 import { URLSearchParams } from "url";
 
 const fetchOptions: RequestInit = {
@@ -29,8 +29,6 @@ export default class Steamcommunity {
   constructor(steamid: string, agentOptions: SocksProxyAgentOptions, timeout: number, webNonce?: string) {
     // add timeout to agentOptions
     agentOptions.timeout = timeout;
-    // add timeout to fetchOptions
-    fetchOptions.timeout = timeout;
     fetchOptions.agent = new SocksProxyAgent(agentOptions);
 
     this.steamid = steamid;
@@ -62,7 +60,7 @@ export default class Steamcommunity {
       form.append("encrypted_loginkey", encrypted_loginkey);
       form.append("sessionkey", sessionkey.encrypted);
 
-      const res = await fetch(url, { ...fetchOptions, method: "POST", body: form }).then((res) => {
+      const res: any = await fetch(url, { ...fetchOptions, method: "POST", body: form }).then((res) => {
         if (res.ok) return res.json();
         throw res;
       });
@@ -144,12 +142,12 @@ export default class Steamcommunity {
     return new Promise((resolve, reject) => {
       operation.attempt(async () => {
         try {
-          const data: Inventory = await fetch(url, fetchOptions).then((res) => {
+          const data = await fetch(url, fetchOptions).then((res) => {
             if (res.ok) return res.json();
             throw res;
           });
 
-          const items = this.parseItems(data, contextId);
+          const items = this.parseItems(data as Inventory, contextId);
           resolve(items);
         } catch (e) {
           if (e.status) {
@@ -188,7 +186,7 @@ export default class Steamcommunity {
     return new Promise((resolve, reject) => {
       operation.attempt(async () => {
         try {
-          const res = await fetch(url, { ...fetchOptions, method: "POST", body: form }).then((res) => {
+          const res: any = await fetch(url, { ...fetchOptions, method: "POST", body: form }).then((res) => {
             if (res.ok) return res.json();
             throw res;
           });
