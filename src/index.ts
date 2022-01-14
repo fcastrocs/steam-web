@@ -1,5 +1,4 @@
 import { FormData, Blob } from "formdata-node";
-import retry from "@machiavelli/retry";
 import Crypto from "crypto";
 import cheerio from "cheerio";
 import SteamCrypto from "steam-crypto-esm";
@@ -14,12 +13,6 @@ const fetchOptions: RequestInit = {
     "User-Agent":
       "Mozilla/5.0 (Windows; U; Windows NT 10.0; en-US; Valve Steam Client/default/1634158817; ) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36",
   },
-};
-
-const operationOptions = {
-  retries: 2,
-  interval: 2000,
-  noDelay: true,
 };
 
 export default class Steamcommunity {
@@ -51,50 +44,27 @@ export default class Steamcommunity {
   async login(): Promise<Cookie> {
     if (!this.webNonce) throw Error("WebNonce is needed.");
     const url = "https://api.steampowered.com/ISteamUserAuth/AuthenticateUser/v1";
-    const operation = new retry(operationOptions);
 
-    const _login = async () => {
-      const sessionkey = SteamCrypto.generateSessionKey();
-      const encrypted_loginkey = SteamCrypto.symmetricEncryptWithHmacIv(this.webNonce, sessionkey.plain);
+    const sessionkey = SteamCrypto.generateSessionKey();
+    const encrypted_loginkey = SteamCrypto.symmetricEncryptWithHmacIv(this.webNonce, sessionkey.plain);
 
-      const form = new FormData();
-      form.append("steamid", this.steamid);
-      form.append("encrypted_loginkey", new Blob([encrypted_loginkey]));
-      form.append("sessionkey", new Blob([sessionkey.encrypted]));
+    const form = new FormData();
+    form.append("steamid", this.steamid);
+    form.append("encrypted_loginkey", new Blob([encrypted_loginkey]));
+    form.append("sessionkey", new Blob([sessionkey.encrypted]));
 
-      const res: any = await fetch(url, { ...fetchOptions, method: "POST", body: form as BodyInit }).then((res) => {
-        if (res.ok) return res.json();
-        throw res;
-      });
+    const res: any = await fetch(url, { ...fetchOptions, method: "POST", body: form as BodyInit }).then((res) => {
+      if (res.ok) return res.json();
+      if (res.status === 429) throw "RateLimitExceeded";
+      throw res;
+    });
 
-      this.cookie = {
-        sessionid: Crypto.randomBytes(12).toString("hex"),
-        steamLoginSecure: res.authenticateuser.tokensecure,
-      };
-
-      return this._cookie;
+    this.cookie = {
+      sessionid: Crypto.randomBytes(12).toString("hex"),
+      steamLoginSecure: res.authenticateuser.tokensecure,
     };
 
-    return new Promise((resolve, reject) => {
-      operation.attempt(async () => {
-        try {
-          const cookie = await _login();
-          resolve(cookie);
-        } catch (e) {
-          // reject without retrying.
-          if (e.status && e.status === 429) {
-            return reject("RateLimitExceeded");
-          }
-
-          // retry operation
-          if (operation.retry()) {
-            return;
-          }
-
-          reject(e);
-        }
-      });
-    });
+    return this._cookie;
   }
 
   /**
@@ -102,34 +72,17 @@ export default class Steamcommunity {
    */
   async getFarmingData(): Promise<FarmData[]> {
     if (!this._cookie) throw Error("Cookie is not set.");
-
     const url = `https://steamcommunity.com/profiles/${this.steamid}/badges`;
-    const operation = new retry(operationOptions);
 
-    return new Promise((resolve, reject) => {
-      operation.attempt(async () => {
-        try {
-          const res = await fetch(url, fetchOptions).then((res) => {
-            if (res.ok) return res.text();
-            throw res;
-          });
-
-          const data: FarmData[] = this.parseFarmingData(res);
-          resolve(data);
-        } catch (e) {
-          if (e.status) {
-            if (e.status === 429) return reject("RateLimitExceeded");
-            if (e.status === 401) return reject("Unauthorized");
-          }
-
-          if (operation.retry()) {
-            return;
-          }
-
-          reject(e);
-        }
-      });
+    const res = await fetch(url, fetchOptions).then((res) => {
+      if (res.ok) return res.text();
+      if (res.status === 429) throw "RateLimitExceeded";
+      if (res.status === 401) throw "Unauthorized";
+      throw res;
     });
+
+    const data: FarmData[] = this.parseFarmingData(res);
+    return data;
   }
 
   /**
@@ -139,32 +92,16 @@ export default class Steamcommunity {
     if (!this._cookie) throw Error("Cookie is not set.");
     const contextId = "6"; // trading cards
     const url = `https://steamcommunity.com/profiles/${this.steamid}/inventory/json/753/${contextId}`;
-    const operation = new retry(operationOptions);
 
-    return new Promise((resolve, reject) => {
-      operation.attempt(async () => {
-        try {
-          const data = await fetch(url, fetchOptions).then((res) => {
-            if (res.ok) return res.json();
-            throw res;
-          });
-
-          const items = this.parseItems(data as Inventory, contextId);
-          resolve(items);
-        } catch (e) {
-          if (e.status) {
-            if (e.status === 429) return reject("RateLimitExceeded");
-            if (e.status === 401) return reject("Unauthorized");
-          }
-
-          if (operation.retry()) {
-            return;
-          }
-
-          reject(e);
-        }
-      });
+    const data = await fetch(url, fetchOptions).then((res) => {
+      if (res.ok) return res.json();
+      if (res.status === 429) throw "RateLimitExceeded";
+      if (res.status === 401) throw "Unauthorized";
+      throw res;
     });
+
+    const items = this.parseItems(data as Inventory, contextId);
+    return items;
   }
 
   /**
@@ -174,9 +111,7 @@ export default class Steamcommunity {
     if (!this._cookie) throw Error("Cookie is not set.");
 
     const url = "https://steamcommunity.com/actions/FileUploader/";
-
     const blob = new Blob([avatar.buffer], { type: avatar.type });
-
     const form = new FormData();
     form.append("name", "avatar");
     form.append("filename", "blob");
@@ -187,35 +122,18 @@ export default class Steamcommunity {
     form.append("doSub", 1);
     form.append("json", 1);
 
-    const operation = new retry(operationOptions);
-
-    return new Promise((resolve, reject) => {
-      operation.attempt(async () => {
-        try {
-          const res: any = await fetch(url, { ...fetchOptions, method: "POST", body: form as BodyInit }).then((res) => {
-            if (res.ok) return res.json();
-            throw res;
-          });
-
-          if (res.success) {
-            resolve(res.images.full);
-          } else {
-            reject(`Avatar upload failed: ${res.message}`);
-          }
-        } catch (e) {
-          if (e.status) {
-            if (e.status === 429) return reject("RateLimitExceeded");
-            if (e.status === 401) return reject("Unauthorized");
-          }
-
-          if (operation.retry()) {
-            return;
-          }
-
-          reject(e);
-        }
-      });
+    const res: any = await fetch(url, { ...fetchOptions, method: "POST", body: form as BodyInit }).then((res) => {
+      if (res.ok) return res.json();
+      if (res.status === 429) throw "RateLimitExceeded";
+      if (res.status === 401) throw "Unauthorized";
+      throw res;
     });
+
+    if (res.success) {
+      return res.images.full;
+    }
+
+    throw `Avatar upload failed: ${res.message}`;
   }
 
   /**
@@ -227,28 +145,12 @@ export default class Steamcommunity {
 
     const params = new URLSearchParams();
     params.append("sessionid", this._cookie.sessionid);
-    const operation = new retry(operationOptions);
 
-    return new Promise((resolve, reject) => {
-      operation.attempt(async () => {
-        try {
-          const res = await fetch(url, { ...fetchOptions, method: "POST", body: params });
-          if (!res.ok) throw res;
-          resolve();
-        } catch (e) {
-          if (e.status) {
-            if (e.status === 429) return reject("RateLimitExceeded");
-            if (e.status === 401) return reject("Unauthorized");
-          }
-
-          if (operation.retry()) {
-            return;
-          }
-
-          reject(e);
-        }
-      });
-    });
+    const res = await fetch(url, { ...fetchOptions, method: "POST", body: params });
+    if (res.ok) return;
+    if (res.status === 429) throw "RateLimitExceeded";
+    if (res.status === 401) throw "Unauthorized";
+    throw res;
   }
 
   /**
@@ -269,28 +171,11 @@ export default class Steamcommunity {
     form.append("Privacy", JSON.stringify(Privacy));
     form.append("eCommentPermission", settings.eCommentPermission);
 
-    const operation = new retry(operationOptions);
-
-    return new Promise((resolve, reject) => {
-      operation.attempt(async () => {
-        try {
-          const res = await fetch(url, { ...fetchOptions, method: "POST", body: form as BodyInit });
-          if (!res.ok) throw res;
-          resolve();
-        } catch (e) {
-          if (e.status) {
-            if (e.status === 429) return reject("RateLimitExceeded");
-            if (e.status === 401) return reject("Unauthorized");
-          }
-
-          if (operation.retry()) {
-            return;
-          }
-
-          reject(e);
-        }
-      });
-    });
+    const res = await fetch(url, { ...fetchOptions, method: "POST", body: form as BodyInit });
+    if (res.ok) return;
+    if (res.status === 429) throw "RateLimitExceeded";
+    if (res.status === 401) throw "Unauthorized";
+    throw res;
   }
 
   /**
