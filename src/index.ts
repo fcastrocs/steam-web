@@ -1,10 +1,11 @@
-import FormData from "form-data";
+import { FormData } from "formdata-node";
 import retry from "@machiavelli/retry";
 import Crypto from "crypto";
 import cheerio from "cheerio";
 import SteamCrypto from "steam-crypto-esm";
-import fetch, { RequestInit } from "node-fetch";
-import { SocksProxyAgent, SocksProxyAgentOptions } from "socks-proxy-agent";
+import fetch, { BodyInit, RequestInit } from "node-fetch";
+import SocksProxyAgent, { SocksProxyAgentOptions } from "socks-proxy-agent";
+
 import { Cookie, FarmData, Item, Inventory, Avatar, PrivacySettings } from "../@types";
 import { URLSearchParams } from "url";
 
@@ -29,7 +30,7 @@ export default class Steamcommunity {
   constructor(steamid: string, agentOptions: SocksProxyAgentOptions, timeout: number, webNonce?: string) {
     // add timeout to agentOptions
     agentOptions.timeout = timeout;
-    fetchOptions.agent = new SocksProxyAgent(agentOptions);
+    fetchOptions.agent = SocksProxyAgent(agentOptions);
 
     this.steamid = steamid;
     this.webNonce = webNonce;
@@ -60,7 +61,7 @@ export default class Steamcommunity {
       form.append("encrypted_loginkey", encrypted_loginkey);
       form.append("sessionkey", sessionkey.encrypted);
 
-      const res: any = await fetch(url, { ...fetchOptions, method: "POST", body: form }).then((res) => {
+      const res: any = await fetch(url, { ...fetchOptions, method: "POST", body: form as BodyInit }).then((res) => {
         if (res.ok) return res.json();
         throw res;
       });
@@ -173,8 +174,12 @@ export default class Steamcommunity {
 
     const url = "https://steamcommunity.com/actions/FileUploader/";
 
+    const blob = new Blob([avatar.buffer], { type: avatar.type });
+
     const form = new FormData();
-    form.append("avatar", avatar.buffer, { filename: "blob", contentType: avatar.type });
+    form.append("name", "avatar");
+    form.append("filename", "blob");
+    form.append("avatar", blob);
     form.append("type", "player_avatar_image");
     form.append("sId", this.steamid);
     form.append("sessionid", this._cookie.sessionid);
@@ -186,7 +191,7 @@ export default class Steamcommunity {
     return new Promise((resolve, reject) => {
       operation.attempt(async () => {
         try {
-          const res: any = await fetch(url, { ...fetchOptions, method: "POST", body: form }).then((res) => {
+          const res: any = await fetch(url, { ...fetchOptions, method: "POST", body: form as BodyInit }).then((res) => {
             if (res.ok) return res.json();
             throw res;
           });
@@ -268,7 +273,7 @@ export default class Steamcommunity {
     return new Promise((resolve, reject) => {
       operation.attempt(async () => {
         try {
-          const res = await fetch(url, { ...fetchOptions, method: "POST", body: form });
+          const res = await fetch(url, { ...fetchOptions, method: "POST", body: form as BodyInit });
           if (!res.ok) throw res;
           resolve();
         } catch (e) {
