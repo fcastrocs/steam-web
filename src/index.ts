@@ -1,4 +1,4 @@
-import { FormData } from "formdata-node";
+import { FormData, Blob } from "formdata-node";
 import retry from "@machiavelli/retry";
 import Crypto from "crypto";
 import cheerio from "cheerio";
@@ -54,12 +54,13 @@ export default class Steamcommunity {
     const operation = new retry(operationOptions);
 
     const _login = async () => {
-      const form = new FormData();
-      form.append("steamid", this.steamid);
       const sessionkey = SteamCrypto.generateSessionKey();
       const encrypted_loginkey = SteamCrypto.symmetricEncryptWithHmacIv(this.webNonce, sessionkey.plain);
-      form.append("encrypted_loginkey", encrypted_loginkey);
-      form.append("sessionkey", sessionkey.encrypted);
+
+      const form = new FormData();
+      form.append("steamid", this.steamid);
+      form.append("encrypted_loginkey", new Blob([encrypted_loginkey]));
+      form.append("sessionkey", new Blob([sessionkey.encrypted]));
 
       const res: any = await fetch(url, { ...fetchOptions, method: "POST", body: form as BodyInit }).then((res) => {
         if (res.ok) return res.json();
