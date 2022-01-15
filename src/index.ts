@@ -122,18 +122,26 @@ export default class Steamcommunity {
     form.append("doSub", 1);
     form.append("json", 1);
 
-    const res: any = await fetch(url, { ...fetchOptions, method: "POST", body: form as BodyInit }).then((res) => {
-      if (res.ok) return res.json();
-      if (res.status === 429) throw "RateLimitExceeded";
-      if (res.status === 401) throw "Unauthorized";
-      throw res;
-    });
+    const res = await fetch(url, { ...fetchOptions, method: "POST", body: form as BodyInit });
 
-    if (res.success) {
-      return res.images.full;
+    if (res.ok) {
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const json: any = await res.json();
+        if (json.success) {
+          return json.images.full;
+        }
+        throw `${json.message}`;
+      }
+
+      // error is given with 200 http code as text because it's valve.
+      const text = await res.text();
+      throw text;
     }
 
-    throw `Avatar upload failed: ${res.message}`;
+    if (res.status === 429) throw "RateLimitExceeded";
+    if (res.status === 401) throw "Unauthorized";
+    throw res;
   }
 
   /**
