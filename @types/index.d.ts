@@ -1,10 +1,16 @@
 import { SocksProxyAgentOptions } from "socks-proxy-agent";
 
+export interface Options {
+  steamid: string;
+  agentOptions: SocksProxyAgentOptions;
+  webNonce?: string;
+}
+
 export default class Steamcommunity {
-  private steamid;
-  private webNonce;
+  private readonly steamid;
+  private readonly webNonce;
   private _cookie;
-  constructor(steamid: string, agentOptions: SocksProxyAgentOptions, timeout: number, webNonce?: string);
+  constructor(options: Options);
   /**
    * Set cookie from JSON string
    */

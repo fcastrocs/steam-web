@@ -1,11 +1,11 @@
 import { FormData, Blob } from "formdata-node";
 import Crypto from "crypto";
-import cheerio from "cheerio";
+import { load } from "cheerio";
 import SteamCrypto from "steam-crypto-esm";
 import fetch, { BodyInit, RequestInit } from "node-fetch";
-import SocksProxyAgent, { SocksProxyAgentOptions } from "socks-proxy-agent";
+import { SocksProxyAgent } from "socks-proxy-agent";
 
-import { Cookie, FarmData, Item, Inventory, Avatar, PrivacySettings } from "../@types";
+import { Cookie, FarmData, Item, Inventory, Avatar, PrivacySettings, Options } from "../@types";
 import { URLSearchParams } from "url";
 
 const fetchOptions: RequestInit = {
@@ -16,17 +16,14 @@ const fetchOptions: RequestInit = {
 };
 
 export default class Steamcommunity {
-  private steamid: string;
-  private webNonce: string;
+  private readonly steamid: string;
+  private readonly webNonce: string;
   private _cookie: Cookie;
 
-  constructor(steamid: string, agentOptions: SocksProxyAgentOptions, timeout: number, webNonce?: string) {
-    // add timeout to agentOptions
-    agentOptions.timeout = timeout;
-    fetchOptions.agent = SocksProxyAgent(agentOptions);
-
-    this.steamid = steamid;
-    this.webNonce = webNonce;
+  constructor(options: Options) {
+    fetchOptions.agent = new SocksProxyAgent(options.agentOptions);
+    this.steamid = options.steamid;
+    this.webNonce = options.webNonce;
   }
 
   /**
@@ -214,7 +211,7 @@ export default class Steamcommunity {
    * Helper function for getFarmingData
    */
   private parseFarmingData(html: string): FarmData[] {
-    const $ = cheerio.load(html);
+    const $ = load(html);
 
     const farmData: FarmData[] = [];
 
