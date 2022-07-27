@@ -1,9 +1,10 @@
 import { SocksProxyAgentOptions } from "socks-proxy-agent";
 
 export interface Options {
-  steamid: string;
   agentOptions: SocksProxyAgentOptions;
-  webNonce: string;
+  steamid: string;
+  webNonce?: string;
+  cookie?: Cookie;
 }
 
 export type Errors = "NeedCookie" | "RateLimitExceeded" | "Unauthorized";
