@@ -36,10 +36,8 @@ export default class Steamcommunity {
 
   /**
    * Login via Steam API to obtain a cookie session
-   * @returns cookie
    */
   async login(): Promise<Cookie> {
-    if (!this.webNonce) throw Error("WebNonce is needed.");
     const url = "https://api.steampowered.com/ISteamUserAuth/AuthenticateUser/v1";
 
     const sessionkey = SteamCrypto.generateSessionKey();
@@ -53,6 +51,7 @@ export default class Steamcommunity {
     const res: any = await fetch(url, { ...fetchOptions, method: "POST", body: form as BodyInit }).then((res) => {
       if (res.ok) return res.json();
       if (res.status === 429) throw "RateLimitExceeded";
+      if (res.status === 401) throw "Unauthorized";
       throw res;
     });
 
@@ -68,7 +67,7 @@ export default class Steamcommunity {
    * Get games with cards left to farm
    */
   async getFarmingData(): Promise<FarmData[]> {
-    if (!this._cookie) throw Error("Cookie is not set.");
+    if (!this._cookie) throw "NeedCookie";
     const url = `https://steamcommunity.com/profiles/${this.steamid}/badges`;
 
     const res = await fetch(url, fetchOptions).then((res) => {
@@ -86,7 +85,7 @@ export default class Steamcommunity {
    * Get cards inventory
    */
   async getCardsInventory(): Promise<Item[]> {
-    if (!this._cookie) throw Error("Cookie is not set.");
+    if (!this._cookie) throw "NeedCookie";
     const contextId = "6"; // trading cards
     const url = `https://steamcommunity.com/profiles/${this.steamid}/inventory/json/753/${contextId}`;
 
@@ -105,8 +104,7 @@ export default class Steamcommunity {
    * Change account profile avatar
    */
   async changeAvatar(avatar: Avatar): Promise<string> {
-    if (!this._cookie) throw Error("Cookie is not set.");
-
+    if (!this._cookie) throw "NeedCookie";
     const url = "https://steamcommunity.com/actions/FileUploader/";
     const blob = new Blob([avatar.buffer], { type: avatar.type });
     const form = new FormData();
@@ -145,7 +143,7 @@ export default class Steamcommunity {
    * Clear account's previous aliases
    */
   async clearAliases(): Promise<void> {
-    if (!this._cookie) throw Error("Cookie is not set.");
+    if (!this._cookie) throw "NeedCookie";
     const url = `https://steamcommunity.com/profiles/${this.steamid}/ajaxclearaliashistory/`;
 
     const params = new URLSearchParams();
@@ -162,7 +160,7 @@ export default class Steamcommunity {
    * Change account's privacy settings
    */
   async changePrivacy(settings: PrivacySettings): Promise<void> {
-    if (!this._cookie) throw Error("Cookie is not set.");
+    if (!this._cookie) throw "NeedCookie";
     const url = `https://steamcommunity.com/profiles/${this.steamid}/ajaxsetprivacy/`;
 
     const form = new FormData();

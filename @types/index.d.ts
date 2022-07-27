@@ -3,8 +3,10 @@ import { SocksProxyAgentOptions } from "socks-proxy-agent";
 export interface Options {
   steamid: string;
   agentOptions: SocksProxyAgentOptions;
-  webNonce?: string;
+  webNonce: string;
 }
+
+export type Errors = "NeedCookie" | "RateLimitExceeded" | "Unauthorized";
 
 export default class Steamcommunity {
   private readonly steamid;
@@ -91,11 +93,6 @@ export interface Inventory {
       tradable: number;
     };
   };
-}
-
-export interface Proxy {
-  ip: string;
-  port: number;
 }
 
 export interface Avatar {
