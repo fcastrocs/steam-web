@@ -1,7 +1,7 @@
 import { SocksProxyAgentOptions } from "socks-proxy-agent";
 
 export interface Options {
-  agentOptions: SocksProxyAgentOptions;
+  agentOptions?: SocksProxyAgentOptions;
   steamid: string;
   webNonce?: string;
   cookie?: Cookie;

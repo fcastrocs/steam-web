@@ -21,7 +21,9 @@ export default class Steamcommunity {
   private cookie: Cookie;
 
   constructor(options: Options) {
-    fetchOptions.agent = new SocksProxyAgent(options.agentOptions);
+    if (options.agentOptions) {
+      fetchOptions.agent = new SocksProxyAgent(options.agentOptions);
+    }
     this.steamid = options.steamid;
     this.webNonce = options.webNonce;
     this.setCookie(options.cookie);
