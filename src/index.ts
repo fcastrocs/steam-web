@@ -26,7 +26,9 @@ export default class Steamcommunity {
     }
     this.steamid = options.steamid;
     this.webNonce = options.webNonce;
-    this.setCookie(options.cookie);
+    if (options.cookie) {
+      this.setCookie(options.cookie);
+    }
   }
 
   /**
