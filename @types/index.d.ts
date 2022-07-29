@@ -101,4 +101,4 @@ export interface Avatar {
   type: string;
 }
 
-export type profilePrivacy = "public" | "friendsOnly" | "private";
+export type ProfilePrivacy = "public" | "friendsOnly" | "private";

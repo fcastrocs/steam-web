@@ -5,7 +5,7 @@ import SteamCrypto from "steam-crypto-esm";
 import fetch, { BodyInit, RequestInit } from "node-fetch";
 import { SocksProxyAgent } from "socks-proxy-agent";
 
-import { Cookie, FarmData, Item, Inventory, Avatar, Options, profilePrivacy } from "../@types";
+import { Cookie, FarmData, Item, Inventory, Avatar, Options, ProfilePrivacy } from "../@types";
 import { URLSearchParams } from "url";
 
 const fetchOptions: RequestInit = {
@@ -166,7 +166,7 @@ export default class Steamcommunity {
   /**
    * Change account's privacy settings
    */
-  async changePrivacy(privacy: profilePrivacy) {
+  async changePrivacy(privacy: ProfilePrivacy) {
     if (!this.cookie) throw "NeedCookie";
     const url = `https://steamcommunity.com/profiles/${this.steamid}/ajaxsetprivacy/`;
 
