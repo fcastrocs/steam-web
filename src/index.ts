@@ -5,7 +5,7 @@ import SteamCrypto from "steam-crypto-esm";
 import fetch, { BodyInit, RequestInit } from "node-fetch";
 import { SocksProxyAgent } from "socks-proxy-agent";
 
-import { Cookie, FarmData, Item, Inventory, Avatar, PrivacySettings, Options } from "../@types";
+import { Cookie, FarmData, Item, Inventory, Avatar, Options, profilePrivacy } from "../@types";
 import { URLSearchParams } from "url";
 
 const fetchOptions: RequestInit = {
@@ -124,7 +124,7 @@ export default class Steamcommunity {
     form.append("doSub", 1);
     form.append("json", 1);
 
-    const res = await fetch(url, { ...fetchOptions, method: "POST", body: form as BodyInit });
+    const res = await fetch(url, { ...fetchOptions, method: "POST", body: form });
 
     if (res.ok) {
       const contentType = res.headers.get("content-type");
@@ -166,24 +166,30 @@ export default class Steamcommunity {
   /**
    * Change account's privacy settings
    */
-  async changePrivacy(settings: PrivacySettings) {
+  async changePrivacy(privacy: profilePrivacy) {
     if (!this.cookie) throw "NeedCookie";
-
     const url = `https://steamcommunity.com/profiles/${this.steamid}/ajaxsetprivacy/`;
+
+    const settings = {
+      PrivacyProfile: 3,
+      PrivacyInventory: 3,
+      PrivacyInventoryGifts: 3,
+      PrivacyOwnedGames: 3,
+      PrivacyPlaytime: 3,
+      PrivacyFriendsList: 3,
+    };
+
+    if (privacy === "public") settings.PrivacyProfile = 3;
+    else if (privacy === "friendsOnly") settings.PrivacyProfile = 2;
+    else if (privacy === "private") settings.PrivacyProfile = 1;
 
     const form = new FormData();
     form.append("sessionid", this.cookie.sessionid);
-    const Privacy: { [key: string]: number } = {};
-    for (const [key, value] of Object.entries(settings)) {
-      if (key !== "eCommentPermission") {
-        Privacy[key] = value;
-      }
-    }
-    form.append("Privacy", JSON.stringify(Privacy));
-    form.append("eCommentPermission", settings.eCommentPermission);
+    form.append("Privacy", JSON.stringify(settings));
+    form.append("eCommentPermission", 1);
 
-    const res = await fetch(url, { ...fetchOptions, method: "POST", body: form as BodyInit });
-    if (res.ok) return;
+    const res = await fetch(url, { ...fetchOptions, method: "POST", body: form });
+    if (res.ok) return await res.json();
     if (res.status === 429) throw "RateLimitExceeded";
     if (res.status === 401) throw "Unauthorized";
     throw res;

@@ -6,7 +6,8 @@
   "type": "module",
   "types": "./@types/index.d.ts",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "author": "",
   "license": "ISC",
@@ -18,7 +19,11 @@
     "steam-crypto-esm": "^3.0.10"
   },
   "devDependencies": {
+    "@types/jest": "^28.1.6",
     "@types/node": "^18.6.1",
-    "typescript": "^4.7.4"
+    "jest": "^28.1.3",
+    "steam-client": "github:fcastrocs/Steam-Client",
+    "typescript": "^4.7.4",
+    "uvu": "^0.5.6"
   }
 }
