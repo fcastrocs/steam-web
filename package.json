@@ -23,7 +23,6 @@
     "@types/node": "^18.6.1",
     "jest": "^28.1.3",
     "steam-client": "github:fcastrocs/Steam-Client",
-    "typescript": "^4.7.4",
-    "uvu": "^0.5.6"
+    "typescript": "^4.7.4"
   }
 }

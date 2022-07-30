@@ -59,7 +59,11 @@ const steamCommunityLogin = async (useProxy: boolean) => {
   expect(cookie).toHaveProperty("sessionid");
   expect(cookie).toHaveProperty("steamLoginSecure");
   globals.cookie = cookie;
-  await steamCommunity.clearAliases();
+};
+
+const steamCommunityReLogin = async (useProxy: boolean) => {
+  globals.steamRes.auth.webNonce = await globals.steam.getWebNonce();
+  return steamCommunityLogin(useProxy);
 };
 
 const getFarmingData = async () => {
@@ -95,14 +99,16 @@ describe("Test SteamCommunity", () => {
   test("getFarmingData - should return FarmData[]", getFarmingData, timeout);
   test("getCardsInventory - should return Item[]", getCardsInventory, timeout);
   test("changePrivacy - should return {success: 1}", changePrivacy, timeout);
+  test("re-login - should return a session cookie", async () => await steamCommunityReLogin(false), timeout);
   afterAll(() => globals.steam.disconnect());
 });
 
-describe("Test SteamCommunity with Proxy", () => {
+/*describe("Test SteamCommunity with Proxy", () => {
   beforeAll(async () => await steamCMLogin(true), timeout);
   test("login - should return a session cookie", async () => await steamCommunityLogin(true), timeout);
   test("getFarmingData - should return FarmData[]", getFarmingData, timeout);
   test("getCardsInventory - should return Item[]", getCardsInventory, timeout);
   test("changePrivacy - should return {success: 1}", changePrivacy, timeout);
+  test("re-login - should return a session cookie", async () => await steamCommunityLogin(true), timeout);
   afterAll(() => globals.steam.disconnect());
-});
+});*/
