@@ -1,6 +1,6 @@
 {
   "name": "steamcommunity-api",
-  "version": "1.0.24",
+  "version": "1.0.25",
   "description": "Account interaction with steamcommunity.com",
   "main": "./lib/index.js",
   "type": "module",
