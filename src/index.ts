@@ -5,7 +5,7 @@ import SteamCrypto from "steam-crypto-esm";
 import fetch, { BodyInit, RequestInit } from "node-fetch";
 import { SocksProxyAgent } from "socks-proxy-agent";
 
-import { Cookie, FarmData, Item, Inventory, Avatar, Options, ProfilePrivacy } from "../@types";
+import { Cookie, FarmableGame, Item, Inventory, Avatar, Options, ProfilePrivacy } from "../@types";
 import { URLSearchParams } from "url";
 
 const fetchOptions: RequestInit = {
@@ -72,7 +72,7 @@ export default class Steamcommunity {
   /**
    * Get games with cards left to farm
    */
-  async getFarmingData(): Promise<FarmData[]> {
+  async getFarmingData(): Promise<FarmableGame[]> {
     const url = `https://steamcommunity.com/profiles/${this.steamid}/badges`;
 
     const res = await fetch(url, fetchOptions).then((res) => {
@@ -82,7 +82,7 @@ export default class Steamcommunity {
       throw res;
     });
 
-    const data: FarmData[] = this.parseFarmingData(res);
+    const data: FarmableGame[] = this.parseFarmingData(res);
     return data;
   }
 
@@ -222,10 +222,10 @@ export default class Steamcommunity {
   /**
    * Helper function for getFarmingData
    */
-  private parseFarmingData(html: string): FarmData[] {
+  private parseFarmingData(html: string): FarmableGame[] {
     const $ = load(html);
 
-    const farmData: FarmData[] = [];
+    const FarmableGame: FarmableGame[] = [];
 
     $(".badge_row").each((index, badge) => {
       let playTime = 0;
@@ -285,9 +285,9 @@ export default class Steamcommunity {
           }
         });
 
-      farmData.push({ name, appId, playTime, remainingCards, droppedCards });
+      FarmableGame.push({ name, appId, playTime, remainingCards, droppedCards });
     });
-    return farmData;
+    return FarmableGame;
   }
 
   private stringifyCookie(cookie: Cookie): string {

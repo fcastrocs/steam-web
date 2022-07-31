@@ -54,7 +54,7 @@ export default class Steamcommunity {
   private stringifyCookie;
 }
 
-export interface FarmData {
+export interface FarmableGame {
   name: string;
   appId: number;
   playTime: number;
