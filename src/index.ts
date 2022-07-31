@@ -58,7 +58,7 @@ export default class Steamcommunity {
     const res: any = await fetch(url, { ...fetchOptions, method: "POST", body: form as BodyInit }).then((res) => {
       if (res.ok) return res.json();
       if (res.status === 429) throw "RateLimitExceeded";
-      if (res.status === 401) throw "Unauthorized";
+      if (res.status === 401) throw "CookieExpired";
       throw res;
     });
 
@@ -78,7 +78,7 @@ export default class Steamcommunity {
     const res = await fetch(url, fetchOptions).then((res) => {
       if (res.ok) return res.text();
       if (res.status === 429) throw "RateLimitExceeded";
-      if (res.status === 401) throw "Unauthorized";
+      if (res.status === 401) throw "CookieExpired";
       throw res;
     });
 
@@ -98,7 +98,7 @@ export default class Steamcommunity {
     const data = await fetch(url, fetchOptions).then((res) => {
       if (res.ok) return res.json();
       if (res.status === 429) throw "RateLimitExceeded";
-      if (res.status === 401) throw "Unauthorized";
+      if (res.status === 401) throw "CookieExpired";
       throw res;
     });
 
@@ -142,7 +142,7 @@ export default class Steamcommunity {
     }
 
     if (res.status === 429) throw "RateLimitExceeded";
-    if (res.status === 401) throw "Unauthorized";
+    if (res.status === 401) throw "CookieExpired";
     throw res;
   }
 
@@ -159,7 +159,7 @@ export default class Steamcommunity {
     const res = await fetch(url, { ...fetchOptions, method: "POST", body: params });
     if (res.ok) return;
     if (res.status === 429) throw "RateLimitExceeded";
-    if (res.status === 401) throw "Unauthorized";
+    if (res.status === 401) throw "CookieExpired";
     throw res;
   }
 
@@ -191,7 +191,7 @@ export default class Steamcommunity {
     const res = await fetch(url, { ...fetchOptions, method: "POST", body: form });
     if (res.ok) return await res.json();
     if (res.status === 429) throw "RateLimitExceeded";
-    if (res.status === 401) throw "Unauthorized";
+    if (res.status === 401) throw "CookieExpired";
     throw res;
   }
 
