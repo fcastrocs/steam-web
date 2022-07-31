@@ -26,7 +26,7 @@ export default class Steamcommunity {
   /**
    * Get games with cards left to farm
    */
-  getFarmingData(): Promise<FarmData[]>;
+  getFarmableGames(): Promise<FarmableGame[]>;
   /**
    * Get cards inventory
    */

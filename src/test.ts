@@ -66,12 +66,12 @@ const steamCommunityReLogin = async (useProxy: boolean) => {
   return steamCommunityLogin(useProxy);
 };
 
-const getFarmingData = async () => {
+const getFarmableGames = async () => {
   const steamCommunity = new Steamcommunity({
     steamid: globals.steamRes.data.steamId,
     cookie: globals.cookie,
   });
-  const farmData = await steamCommunity.getFarmingData();
+  const farmData = await steamCommunity.getFarmableGames();
   expect(Array.isArray(farmData)).toBe(true);
 };
 
@@ -80,7 +80,7 @@ const getCardsInventory = async () => {
     steamid: globals.steamRes.data.steamId,
     cookie: globals.cookie,
   });
-  const items = await steamCommunity.getFarmingData();
+  const items = await steamCommunity.getFarmableGames();
   expect(Array.isArray(items)).toBe(true);
 };
 
@@ -96,7 +96,7 @@ const changePrivacy = async () => {
 describe("Test SteamCommunity", () => {
   beforeAll(async () => await steamCMLogin(false), timeout);
   test("login - should return a session cookie", async () => await steamCommunityLogin(false), timeout);
-  test("getFarmingData - should return FarmData[]", getFarmingData, timeout);
+  test("getFarmableGames - should return FarmableGame[]", getFarmableGames, timeout);
   test("getCardsInventory - should return Item[]", getCardsInventory, timeout);
   test("changePrivacy - should return {success: 1}", changePrivacy, timeout);
   test("re-login - should return a session cookie", async () => await steamCommunityReLogin(false), timeout);
@@ -106,7 +106,7 @@ describe("Test SteamCommunity", () => {
 /*describe("Test SteamCommunity with Proxy", () => {
   beforeAll(async () => await steamCMLogin(true), timeout);
   test("login - should return a session cookie", async () => await steamCommunityLogin(true), timeout);
-  test("getFarmingData - should return FarmData[]", getFarmingData, timeout);
+  test("getFarmableGames - should return FarmableGame[]", getFarmableGames, timeout);
   test("getCardsInventory - should return Item[]", getCardsInventory, timeout);
   test("changePrivacy - should return {success: 1}", changePrivacy, timeout);
   test("re-login - should return a session cookie", async () => await steamCommunityLogin(true), timeout);

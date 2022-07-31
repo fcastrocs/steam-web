@@ -72,7 +72,7 @@ export default class Steamcommunity {
   /**
    * Get games with cards left to farm
    */
-  async getFarmingData(): Promise<FarmableGame[]> {
+  async getFarmableGames(): Promise<FarmableGame[]> {
     const url = `https://steamcommunity.com/profiles/${this.steamid}/badges`;
 
     const res = await fetch(url, fetchOptions).then((res) => {
@@ -220,7 +220,7 @@ export default class Steamcommunity {
   }
 
   /**
-   * Helper function for getFarmingData
+   * Helper function for getFarmableGames
    */
   private parseFarmingData(html: string): FarmableGame[] {
     const $ = load(html);
