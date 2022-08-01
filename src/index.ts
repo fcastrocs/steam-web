@@ -314,5 +314,6 @@ export default class Steamcommunity {
 export class SteamcommunityError extends Error {
   constructor(message: string) {
     super(message);
+    super.name = "steamcommunity-api";
   }
 }
