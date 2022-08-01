@@ -5,7 +5,18 @@ import SteamCrypto from "steam-crypto-esm";
 import fetch, { BodyInit, RequestInit } from "node-fetch";
 import { SocksProxyAgent } from "socks-proxy-agent";
 
-import { Cookie, FarmableGame, Item, Inventory, Avatar, Options, ProfilePrivacy } from "../@types";
+import {
+  Cookie,
+  FarmableGame,
+  Item,
+  InventoryResponse,
+  Avatar,
+  Options,
+  ProfilePrivacy,
+  AvatarUploadResponse,
+  LoginResponse,
+  PrivacyResponce,
+} from "../@types";
 import { URLSearchParams } from "url";
 
 const fetchOptions: RequestInit = {
@@ -55,12 +66,14 @@ export default class Steamcommunity {
     form.append("encrypted_loginkey", new Blob([encrypted_loginkey]));
     form.append("sessionkey", new Blob([sessionkey.encrypted]));
 
-    const res: any = await fetch(url, { ...fetchOptions, method: "POST", body: form as BodyInit }).then((res) => {
-      if (res.ok) return res.json();
-      if (res.status === 429) throw "RateLimitExceeded";
-      if (res.status === 401) throw "CookieExpired";
-      throw res;
-    });
+    const res: LoginResponse = await fetch(url, { ...fetchOptions, method: "POST", body: form as BodyInit }).then(
+      (res) => {
+        if (res.ok) return res.json() as unknown as LoginResponse;
+        if (res.status === 429) throw "RateLimitExceeded";
+        if (res.status === 401) throw "CookieExpired";
+        throw res;
+      }
+    );
 
     this.setCookie({
       sessionid: Crypto.randomBytes(12).toString("hex"),
@@ -78,7 +91,6 @@ export default class Steamcommunity {
     const res = await fetch(url, fetchOptions).then((res) => {
       if (res.ok) return res.text();
       if (res.status === 429) throw "RateLimitExceeded";
-      if (res.status === 401) throw "CookieExpired";
       throw res;
     });
 
@@ -96,13 +108,17 @@ export default class Steamcommunity {
     const url = `https://steamcommunity.com/profiles/${this.steamid}/inventory/json/753/${contextId}`;
 
     const data = await fetch(url, fetchOptions).then((res) => {
-      if (res.ok) return res.json();
+      if (res.ok) return res.json() as unknown as InventoryResponse;
       if (res.status === 429) throw "RateLimitExceeded";
-      if (res.status === 401) throw "CookieExpired";
       throw res;
     });
 
-    const items = this.parseItems(data as Inventory, contextId);
+    if (!data.success) {
+      if (data.Error === "This profile is private.") throw "CookieExpired";
+      throw data.Error;
+    }
+
+    const items = this.parseItems(data, contextId);
     return items;
   }
 
@@ -125,25 +141,21 @@ export default class Steamcommunity {
     form.append("json", 1);
 
     const res = await fetch(url, { ...fetchOptions, method: "POST", body: form });
+    if (res.status === 429) throw "RateLimitExceeded";
+    if (res.status === 400) throw "BadAvatar";
 
-    if (res.ok) {
-      const contentType = res.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        const json: any = await res.json();
-        if (json.success) {
-          return json.images.full;
-        }
-        throw `${json.message}`;
-      }
-
-      // error is given with 200 http code as text because it's valve.
-      const text = await res.text();
-      throw text;
+    const contentType = res.headers.get("content-type");
+    // avatar uploaded successfully
+    if (contentType && contentType.includes("application/json")) {
+      const json = (await res.json()) as unknown as AvatarUploadResponse;
+      if (json.success) return json.images.full;
+      throw json;
     }
 
-    if (res.status === 429) throw "RateLimitExceeded";
-    if (res.status === 401) throw "CookieExpired";
-    throw res;
+    // error is given with 200 code as text because it's valve.
+    const text = await res.text();
+    if (text === "#Error_BadOrMissingSteamID") throw "CookieExpired";
+    throw text;
   }
 
   /**
@@ -189,16 +201,20 @@ export default class Steamcommunity {
     form.append("eCommentPermission", 1);
 
     const res = await fetch(url, { ...fetchOptions, method: "POST", body: form });
-    if (res.ok) return await res.json();
     if (res.status === 429) throw "RateLimitExceeded";
     if (res.status === 401) throw "CookieExpired";
+    if (res.ok) {
+      const json = (await res.json()) as unknown as PrivacyResponce;
+      if (json.success) return;
+      throw json;
+    }
     throw res;
   }
 
   /**
    * Helper function for getCardsInventory
    */
-  private parseItems(data: Inventory, contextId: string): Item[] {
+  private parseItems(data: InventoryResponse, contextId: string): Item[] {
     const inventory = data.rgInventory;
     const description = data.rgDescriptions;
 
@@ -225,6 +241,11 @@ export default class Steamcommunity {
   private parseFarmingData(html: string): FarmableGame[] {
     const $ = load(html);
 
+    // check if cookie expired
+    if ($(".global_action_link").first().text() === "login") {
+      throw "CookieExpired";
+    }
+
     const FarmableGame: FarmableGame[] = [];
 
     $(".badge_row").each((index, badge) => {
@@ -242,7 +263,7 @@ export default class Steamcommunity {
 
       const remainingCardsText = progress.text();
       // can also include "tasks remaining"
-      if (!remainingCardsText.includes("card drops remaining")) {
+      if (!remainingCardsText.includes("card")) {
         return;
       }
 
@@ -266,7 +287,11 @@ export default class Steamcommunity {
       // Get game title
       // remove details first...
       $(badge).find(".badge_view_details").remove();
-      name = $(badge).find(".badge_title").text().replace("/&nbsp;", "").trim();
+      name = $(badge)
+        .find(".badge_title")
+        .text()
+        .replace(/&nbsp;/, "")
+        .trim();
 
       // Get appID
       let link = $(badge).find(".badge_row_overlay").attr("href");

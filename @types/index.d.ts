@@ -12,15 +12,14 @@ export type Errors = "NeedCookie" | "RateLimitExceeded" | "Unauthorized";
 export default class Steamcommunity {
   private readonly steamid;
   private readonly webNonce;
-  private _cookie;
+  private cookie;
   constructor(options: Options);
   /**
    * Set cookie from JSON string
    */
-  set cookie(cookie: Cookie);
+  setCookie(cookie: Cookie): void;
   /**
    * Login via Steam API to obtain a cookie session
-   * @returns cookie
    */
   login(): Promise<Cookie>;
   /**
@@ -42,13 +41,13 @@ export default class Steamcommunity {
   /**
    * Change account's privacy settings
    */
-  changePrivacy(settings: PrivacySettings): Promise<void>;
+  changePrivacy(privacy: ProfilePrivacy): Promise<unknown>;
   /**
    * Helper function for getCardsInventory
    */
   private parseItems;
   /**
-   * Helper function for getFarmingData
+   * Helper function for getFarmableGames
    */
   private parseFarmingData;
   private stringifyCookie;
@@ -77,7 +76,23 @@ export interface Cookie {
   steamLoginSecure: string;
 }
 
-export interface Inventory {
+export interface Avatar {
+  buffer: Buffer;
+  type: "image/jpeg" | "image/png";
+}
+
+export type ProfilePrivacy = "public" | "friendsOnly" | "private";
+
+interface AvatarUploadResponse {
+  success: boolean;
+  images: { "0": string; full: string; medium: string };
+  hash: string;
+  message: string;
+}
+
+interface InventoryResponse {
+  success: boolean;
+  Error?: string;
   rgInventory: {
     [key: string]: {
       id: string;
@@ -96,9 +111,24 @@ export interface Inventory {
   };
 }
 
-export interface Avatar {
-  buffer: Buffer;
-  type: string;
+interface LoginResponse {
+  authenticateuser: {
+    token: string;
+    tokensecure: string;
+  };
 }
 
-export type ProfilePrivacy = "public" | "friendsOnly" | "private";
+interface PrivacyResponce {
+  success: number;
+  Privacy: {
+    PrivacySettings: {
+      PrivacyProfile: number;
+      PrivacyInventory: number;
+      PrivacyInventoryGifts: number;
+      PrivacyOwnedGames: number;
+      PrivacyPlaytime: number;
+      PrivacyFriendsList: number;
+    };
+    eCommentPermission: number;
+  };
+}
