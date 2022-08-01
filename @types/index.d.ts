@@ -7,8 +7,6 @@ export interface Options {
   cookie?: Cookie;
 }
 
-export type Errors = "NeedCookie" | "RateLimitExceeded" | "Unauthorized";
-
 export default class Steamcommunity {
   private readonly steamid;
   private readonly webNonce;
@@ -41,7 +39,7 @@ export default class Steamcommunity {
   /**
    * Change account's privacy settings
    */
-  changePrivacy(privacy: ProfilePrivacy): Promise<unknown>;
+  changePrivacy(privacy: ProfilePrivacy): Promise<void>;
   /**
    * Helper function for getCardsInventory
    */
