@@ -27,11 +27,11 @@ const fetchOptions: RequestInit = {
 };
 
 const ERRORS = {
-  NEED_WEBNONCE: "NeedWebNonce",
-  RATE_LIMIT: "RateLimitExceeded",
-  NEED_COOKIE: "NeedCookie",
-  COOKIE_EXPIRED: "CookieExpired",
-  BAD_REQUEST: "BadRequest",
+  NEED_WEBNONCE: new Error("NeedWebNonce"),
+  RATE_LIMIT: new Error("RateLimitExceeded"),
+  NEED_COOKIE: new Error("NeedCookie"),
+  COOKIE_EXPIRED: new Error("CookieExpired"),
+  BAD_REQUEST: new Error("BadRequest"),
 } as const;
 
 export default class Steamcommunity {
@@ -62,7 +62,7 @@ export default class Steamcommunity {
    * Login via Steam API to obtain a cookie session
    */
   async login(): Promise<Cookie> {
-    if (!this.webNonce) throw Error(ERRORS.NEED_WEBNONCE);
+    if (!this.webNonce) throw ERRORS.NEED_WEBNONCE;
 
     const url = "https://api.steampowered.com/ISteamUserAuth/AuthenticateUser/v1";
 
@@ -77,8 +77,8 @@ export default class Steamcommunity {
     const res: LoginResponse = await fetch(url, { ...fetchOptions, method: "POST", body: form as BodyInit }).then(
       (res) => {
         if (res.ok) return res.json() as unknown as LoginResponse;
-        if (res.status === 429) throw Error(ERRORS.RATE_LIMIT);
-        if (res.status === 401) throw Error(ERRORS.COOKIE_EXPIRED);
+        if (res.status === 429) throw ERRORS.RATE_LIMIT;
+        if (res.status === 401) throw ERRORS.COOKIE_EXPIRED;
         throw res;
       }
     );
@@ -98,7 +98,7 @@ export default class Steamcommunity {
 
     const res = await fetch(url, fetchOptions).then((res) => {
       if (res.ok) return res.text();
-      if (res.status === 429) throw Error(ERRORS.RATE_LIMIT);
+      if (res.status === 429) throw ERRORS.RATE_LIMIT;
       throw res;
     });
 
@@ -110,19 +110,19 @@ export default class Steamcommunity {
    * Get cards inventory
    */
   async getCardsInventory(): Promise<Item[]> {
-    if (!this.cookie) throw Error(ERRORS.NEED_COOKIE);
+    if (!this.cookie) throw ERRORS.NEED_COOKIE;
 
     const contextId = "6"; // trading cards
     const url = `https://steamcommunity.com/profiles/${this.steamid}/inventory/json/753/${contextId}`;
 
     const data = await fetch(url, fetchOptions).then((res) => {
       if (res.ok) return res.json() as unknown as InventoryResponse;
-      if (res.status === 429) throw Error(ERRORS.RATE_LIMIT);
+      if (res.status === 429) throw ERRORS.RATE_LIMIT;
       throw res;
     });
 
     if (!data.success) {
-      if (data.Error === "This profile is private.") throw Error(ERRORS.COOKIE_EXPIRED);
+      if (data.Error === "This profile is private.") throw ERRORS.COOKIE_EXPIRED;
       throw data;
     }
 
@@ -134,7 +134,7 @@ export default class Steamcommunity {
    * Change account profile avatar
    */
   async changeAvatar(avatar: Avatar): Promise<string> {
-    if (!this.cookie) throw Error(ERRORS.NEED_COOKIE);
+    if (!this.cookie) throw ERRORS.NEED_COOKIE;
 
     const url = "https://steamcommunity.com/actions/FileUploader/";
     const blob = new Blob([avatar.buffer], { type: avatar.type });
@@ -149,8 +149,8 @@ export default class Steamcommunity {
     form.append("json", 1);
 
     const res = await fetch(url, { ...fetchOptions, method: "POST", body: form });
-    if (res.status === 429) throw Error(ERRORS.RATE_LIMIT);
-    if (res.status === 400) throw Error(ERRORS.BAD_REQUEST);
+    if (res.status === 429) throw ERRORS.RATE_LIMIT;
+    if (res.status === 400) throw ERRORS.BAD_REQUEST;
 
     const contentType = res.headers.get("content-type");
     // avatar uploaded successfully
@@ -162,7 +162,7 @@ export default class Steamcommunity {
 
     // error is given with 200 code as text because it's valve.
     const text = await res.text();
-    if (text === "#Error_BadOrMissingSteamID") throw Error(ERRORS.COOKIE_EXPIRED);
+    if (text === "#Error_BadOrMissingSteamID") throw ERRORS.COOKIE_EXPIRED;
     throw text;
   }
 
@@ -170,7 +170,7 @@ export default class Steamcommunity {
    * Clear account's previous aliases
    */
   async clearAliases() {
-    if (!this.cookie) throw Error(ERRORS.NEED_COOKIE);
+    if (!this.cookie) throw ERRORS.NEED_COOKIE;
     const url = `https://steamcommunity.com/profiles/${this.steamid}/ajaxclearaliashistory/`;
 
     const params = new URLSearchParams();
@@ -178,8 +178,8 @@ export default class Steamcommunity {
 
     const res = await fetch(url, { ...fetchOptions, method: "POST", body: params });
     if (res.ok) return;
-    if (res.status === 429) throw Error(ERRORS.RATE_LIMIT);
-    if (res.status === 401) throw Error(ERRORS.COOKIE_EXPIRED);
+    if (res.status === 429) throw ERRORS.RATE_LIMIT;
+    if (res.status === 401) throw ERRORS.COOKIE_EXPIRED;
     throw res;
   }
 
@@ -187,7 +187,7 @@ export default class Steamcommunity {
    * Change account's privacy settings
    */
   async changePrivacy(privacy: ProfilePrivacy) {
-    if (!this.cookie) throw Error(ERRORS.NEED_COOKIE);
+    if (!this.cookie) throw ERRORS.NEED_COOKIE;
     const url = `https://steamcommunity.com/profiles/${this.steamid}/ajaxsetprivacy/`;
 
     const settings = {
@@ -209,8 +209,8 @@ export default class Steamcommunity {
     form.append("eCommentPermission", 1);
 
     const res = await fetch(url, { ...fetchOptions, method: "POST", body: form });
-    if (res.status === 429) throw Error(ERRORS.RATE_LIMIT);
-    if (res.status === 401) throw Error(ERRORS.COOKIE_EXPIRED);
+    if (res.status === 429) throw ERRORS.RATE_LIMIT;
+    if (res.status === 401) throw ERRORS.COOKIE_EXPIRED;
     if (res.ok) {
       const json = (await res.json()) as unknown as PrivacyResponce;
       if (json.success) return;
@@ -250,7 +250,7 @@ export default class Steamcommunity {
     const $ = load(html);
 
     // check if cookie expired
-    if ($(".global_action_link").first().text().includes("login")) throw Error(ERRORS.COOKIE_EXPIRED);
+    if ($(".global_action_link").first().text().includes("login")) throw ERRORS.COOKIE_EXPIRED;
 
     const FarmableGame: FarmableGame[] = [];
 
