@@ -50,6 +50,9 @@ export default class Steamcommunity {
   private parseFarmingData;
   private stringifyCookie;
 }
+export class SteamcommunityError extends Error {
+  constructor(message: string);
+}
 
 export interface FarmableGame {
   name: string;

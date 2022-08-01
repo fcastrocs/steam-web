@@ -2,9 +2,10 @@ import { FormData, Blob } from "formdata-node";
 import Crypto from "crypto";
 import { load } from "cheerio";
 import SteamCrypto from "steam-crypto-esm";
-import fetch, { BodyInit, RequestInit } from "node-fetch";
+import fetch, { BodyInit } from "node-fetch";
 import { SocksProxyAgent } from "socks-proxy-agent";
-
+import { URLSearchParams } from "url";
+import { ERRORS, fetchOptions } from "./constants.js";
 import {
   Cookie,
   FarmableGame,
@@ -17,22 +18,6 @@ import {
   LoginResponse,
   PrivacyResponce,
 } from "../@types";
-import { URLSearchParams } from "url";
-
-const fetchOptions: RequestInit = {
-  headers: {
-    "User-Agent":
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36",
-  },
-};
-
-const ERRORS = {
-  NEED_WEBNONCE: new Error("NeedWebNonce"),
-  RATE_LIMIT: new Error("RateLimitExceeded"),
-  NEED_COOKIE: new Error("NeedCookie"),
-  COOKIE_EXPIRED: new Error("CookieExpired"),
-  BAD_REQUEST: new Error("BadRequest"),
-} as const;
 
 export default class Steamcommunity {
   private readonly steamid: string;
@@ -323,5 +308,11 @@ export default class Steamcommunity {
 
   private stringifyCookie(cookie: Cookie): string {
     return `sessionid=${cookie.sessionid}; steamLoginSecure=${cookie.steamLoginSecure};`;
+  }
+}
+
+export class SteamcommunityError extends Error {
+  constructor(message: string) {
+    super(message);
   }
 }
