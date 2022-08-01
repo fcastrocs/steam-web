@@ -2,10 +2,9 @@ import { FormData, Blob } from "formdata-node";
 import Crypto from "crypto";
 import { load } from "cheerio";
 import SteamCrypto from "steam-crypto-esm";
-import fetch, { BodyInit } from "node-fetch";
+import fetch, { BodyInit, RequestInit } from "node-fetch";
 import { SocksProxyAgent } from "socks-proxy-agent";
 import { URLSearchParams } from "url";
-import { ERRORS, fetchOptions } from "./constants.js";
 import {
   Cookie,
   FarmableGame,
@@ -18,6 +17,28 @@ import {
   LoginResponse,
   PrivacyResponce,
 } from "../@types";
+
+export const fetchOptions: RequestInit = {
+  headers: {
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36",
+  },
+};
+
+export class SteamcommunityError extends Error {
+  constructor(message: string) {
+    super(message);
+    super.name = "steamcommunity-api";
+  }
+}
+
+export const ERRORS = {
+  NEED_WEBNONCE: new SteamcommunityError("NeedWebNonce"),
+  RATE_LIMIT: new SteamcommunityError("RateLimitExceeded"),
+  NEED_COOKIE: new SteamcommunityError("NeedCookie"),
+  COOKIE_EXPIRED: new SteamcommunityError("CookieExpired"),
+  BAD_REQUEST: new SteamcommunityError("BadRequest"),
+} as const;
 
 export default class Steamcommunity {
   private readonly steamid: string;
@@ -308,12 +329,5 @@ export default class Steamcommunity {
 
   private stringifyCookie(cookie: Cookie): string {
     return `sessionid=${cookie.sessionid}; steamLoginSecure=${cookie.steamLoginSecure};`;
-  }
-}
-
-export class SteamcommunityError extends Error {
-  constructor(message: string) {
-    super(message);
-    super.name = "steamcommunity-api";
   }
 }
