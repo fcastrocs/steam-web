@@ -1,8 +1,9 @@
 import Steam, { AccountAuth, AccountData, LoginOptions, Options } from "steam-client";
-import { Cookie } from "../@types/index.js";
-import Steamcommunity from "./index.js";
+import { Cookie } from "../../@types";
+import Steamcommunity from "../index.js";
 import fs from "fs";
-const timeout = 30000;
+import assert from "assert";
+const timeout = 15000;
 
 const avatar = fs.readFileSync("avatar.txt").toString();
 
@@ -60,8 +61,8 @@ const getSteamCommunity = (useProxy: boolean) => {
 const steamCommunityLogin = async (useProxy: boolean) => {
   const steamCommunity = getSteamCommunity(useProxy);
   const cookie = await steamCommunity.login();
-  expect(cookie).toHaveProperty("sessionid");
-  expect(cookie).toHaveProperty("steamLoginSecure");
+  assert("sessionid" in cookie);
+  assert("steamLoginSecure" in cookie);
   globals.cookie = cookie;
 };
 
@@ -74,13 +75,13 @@ const steamCommunityReLogin = async (useProxy: boolean) => {
 const getFarmableGames = async (useProxy: boolean) => {
   const steamCommunity = getSteamCommunity(useProxy);
   const farmData = await steamCommunity.getFarmableGames();
-  expect(Array.isArray(farmData)).toBe(true);
+  assert.equal(Array.isArray(farmData), true);
 };
 
 const getCardsInventory = async (useProxy: boolean) => {
   const steamCommunity = getSteamCommunity(useProxy);
   const items = await steamCommunity.getFarmableGames();
-  expect(Array.isArray(items)).toBe(true);
+  assert.equal(Array.isArray(items), true);
 };
 
 const changePrivacy = async (useProxy: boolean) => {
@@ -94,7 +95,7 @@ const changeAvatar = async (useProxy: boolean) => {
     type: "image/jpeg",
     buffer: Buffer.from(avatar, "base64"),
   });
-  expect(avatarUrl.includes("https")).toBe(true);
+  assert.equal(avatarUrl.includes("https"), true);
 };
 
 const expiredCookie = async () => {
@@ -103,28 +104,53 @@ const expiredCookie = async () => {
     cookie: { sessionid: "", steamLoginSecure: "" },
   });
 
-  await expect(steamCommunity.changePrivacy("public")).rejects.toThrow("CookieExpired");
-  await expect(steamCommunity.getFarmableGames()).rejects.toThrow("CookieExpired");
-  await expect(steamCommunity.getCardsInventory()).rejects.toThrow("CookieExpired");
-  await expect(steamCommunity.clearAliases()).rejects.toThrow("CookieExpired");
-  await expect(
+  await assert.rejects(steamCommunity.changePrivacy("public"), (err: Error) => {
+    assert.equal(err.name, "steamcommunity-api");
+    assert.equal(err.message, "CookieExpired");
+    return true;
+  });
+
+  await assert.rejects(steamCommunity.getFarmableGames(), (err: Error) => {
+    assert.equal(err.name, "steamcommunity-api");
+    assert.equal(err.message, "CookieExpired");
+    return true;
+  });
+
+  await assert.rejects(steamCommunity.getCardsInventory(), (err: Error) => {
+    assert.equal(err.name, "steamcommunity-api");
+    assert.equal(err.message, "CookieExpired");
+    return true;
+  });
+
+  await assert.rejects(steamCommunity.clearAliases(), (err: Error) => {
+    assert.equal(err.name, "steamcommunity-api");
+    assert.equal(err.message, "CookieExpired");
+    return true;
+  });
+
+  await assert.rejects(
     steamCommunity.changeAvatar({
       type: "image/jpeg",
       buffer: Buffer.from(avatar, "base64"),
-    })
-  ).rejects.toThrow("CookieExpired");
+    }),
+    (err: Error) => {
+      assert.equal(err.name, "steamcommunity-api");
+      assert.equal(err.message, "CookieExpired");
+      return true;
+    }
+  );
 };
 
-describe("Test SteamCommunity", () => {
-  beforeAll(async () => await steamCMLogin(false), timeout);
-  test("login - should return a session cookie", async () => await steamCommunityLogin(false), timeout);
-  test("getFarmableGames - should return FarmableGame[]", async () => await getFarmableGames(false), timeout);
-  test("getCardsInventory - should return Item[]", async () => await getCardsInventory(false), timeout);
-  test("changePrivacy", async () => await changePrivacy(false), timeout);
-  test("changeAvatar - should return string url string", async () => await changeAvatar(false), timeout);
-  test("Cookie - all should fail with CookieExpired", expiredCookie, timeout);
-  test("re-login - should return a session cookie", async () => await steamCommunityReLogin(false), timeout);
-  afterAll(() => globals.steam.disconnect());
+describe("Test steamcommunity-api", () => {
+  step("Steam CM Login", async () => await steamCMLogin(false));
+  step("login() - should return a session cookie", async () => await steamCommunityLogin(false));
+  it("getFarmableGames() - should return FarmableGame[]", async () => await getFarmableGames(false));
+  it("getCardsInventory() - should return Item[]", async () => await getCardsInventory(false));
+  it("changePrivacy()", async () => await changePrivacy(false));
+  it("changeAvatar() - should return string url string", async () => await changeAvatar(false));
+  it("All methods should fail with CookieExpired", async () => await expiredCookie());
+  it("login() - should return a session cookie", async () => await steamCommunityReLogin(false));
+  after(() => globals.steam.disconnect());
 });
 
 /*describe("Test SteamCommunity with Proxy", () => {
