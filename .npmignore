@@ -1,5 +1,8 @@
 node_modules
 tsconfig.json
 .gitignore
+.eslintrc.json
+.mocharc.json
 src
 package-lock.json
+lib/__tests__
