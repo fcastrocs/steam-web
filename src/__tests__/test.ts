@@ -91,10 +91,7 @@ const changePrivacy = async (useProxy: boolean) => {
 
 const changeAvatar = async (useProxy: boolean) => {
   const steamCommunity = getSteamCommunity(useProxy);
-  const avatarUrl = await steamCommunity.changeAvatar({
-    type: "image/jpeg",
-    buffer: Buffer.from(avatar, "base64"),
-  });
+  const avatarUrl = await steamCommunity.changeAvatar(avatar);
   assert.equal(avatarUrl.includes("https"), true);
 };
 
@@ -128,17 +125,11 @@ const expiredCookie = async () => {
     return true;
   });
 
-  await assert.rejects(
-    steamCommunity.changeAvatar({
-      type: "image/jpeg",
-      buffer: Buffer.from(avatar, "base64"),
-    }),
-    (err: Error) => {
-      assert.equal(err.name, "steamcommunity-api");
-      assert.equal(err.message, "CookieExpired");
-      return true;
-    }
-  );
+  await assert.rejects(steamCommunity.changeAvatar(avatar), (err: Error) => {
+    assert.equal(err.name, "steamcommunity-api");
+    assert.equal(err.message, "CookieExpired");
+    return true;
+  });
 };
 
 describe("Test steamcommunity-api", () => {

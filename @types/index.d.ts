@@ -31,7 +31,7 @@ export default class Steamcommunity {
   /**
    * Change account profile avatar
    */
-  changeAvatar(avatar: Avatar): Promise<string>;
+  changeAvatar(avatar: string): Promise<string>;
   /**
    * Clear account's previous aliases
    */
@@ -75,11 +75,6 @@ export interface Item {
 export interface Cookie {
   sessionid: string;
   steamLoginSecure: string;
-}
-
-export interface Avatar {
-  buffer: Buffer;
-  type: "image/jpeg" | "image/png";
 }
 
 export type ProfilePrivacy = "public" | "friendsOnly" | "private";

@@ -10,7 +10,6 @@ import {
   FarmableGame,
   Item,
   InventoryResponse,
-  Avatar,
   Options,
   ProfilePrivacy,
   AvatarUploadResponse,
@@ -139,11 +138,12 @@ export default class Steamcommunity {
   /**
    * Change account profile avatar
    */
-  async changeAvatar(avatar: Avatar): Promise<string> {
+  async changeAvatar(avatarDataURL: string): Promise<string> {
     if (!this.cookie) throw ERRORS.NEED_COOKIE;
-
     const url = "https://steamcommunity.com/actions/FileUploader/";
-    const blob = new Blob([avatar.buffer], { type: avatar.type });
+
+    const blob = await fetch(avatarDataURL).then((res) => res.blob());
+
     const form = new FormData();
     form.append("name", "avatar");
     form.append("filename", "blob");
