@@ -1,11 +1,9 @@
 import Steam, { AccountAuth, AccountData, LoginOptions, Options } from "steam-client";
 import { Cookie } from "../../@types";
 import Steamcommunity from "../index.js";
-import fs from "fs";
 import assert from "assert";
+import fetch from "node-fetch";
 const timeout = 15000;
-
-const avatar = fs.readFileSync("avatar.txt").toString();
 
 interface Globals {
   steamCM: Options["steamCM"];
@@ -33,6 +31,8 @@ const globals: Globals = {
   cookie: null,
   loginOptions: { accountName: "", password: "" },
 };
+
+const avatar = "https://avatars.steamstatic.com/23e6beb43897c50a8e004af188539b274d06310b_full.jpg";
 
 const steamCMLogin = async (useProxy: boolean) => {
   globals.steam = new Steam({ proxy: useProxy ? globals.proxy : null, steamCM: globals.steamCM, timeout });
@@ -91,7 +91,15 @@ const changePrivacy = async (useProxy: boolean) => {
 
 const changeAvatar = async (useProxy: boolean) => {
   const steamCommunity = getSteamCommunity(useProxy);
-  const avatarUrl = await steamCommunity.changeAvatar(avatar);
+
+  const blob = await fetch(avatar).then((res) => res.blob());
+
+  // convert to dataURL
+  const arrayBuffer = await blob.arrayBuffer();
+  const base64Data = Buffer.from(arrayBuffer).toString("base64");
+  const dataurl = `data:${blob.type};base64,${base64Data}`;
+
+  const avatarUrl = await steamCommunity.changeAvatar(dataurl);
   assert.equal(avatarUrl.includes("https"), true);
 };
 
