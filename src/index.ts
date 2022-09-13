@@ -11,7 +11,6 @@ import ISteamWeb, {
   Options,
   ProfilePrivacy,
   AvatarUploadResponse,
-  PrivacyResponce,
   FinalizeloginRes,
   Payload,
   FetchOptions,
