@@ -48,14 +48,23 @@ export default class SteamWeb implements ISteamWeb {
     }
   }
 
+  async login(token: string) {
+    const { payload, tokenType } = this.verifyAccessToken(token);
+    this.steamid = payload.sub;
+
+    if (tokenType === "access") {
+      await this.loginWithAccessToken(token);
+    } else if (tokenType === "refresh") {
+      await this.loginWithRefreshToken(token);
+    }
+  }
+
   /**
    * Login to steam with refresh_token
-   * (takes longer than with access_token)
+   * (takes a bit longer than access_token login)
    * @returns auth cookie
    */
-  async loginWithRefreshToken(refreshToken: string): Promise<void> {
-    this.verifyAccessToken(refreshToken, "refresh");
-
+  private async loginWithRefreshToken(refreshToken: string): Promise<void> {
     const finalizeLoginRes = await this.finalizeLogin(refreshToken);
     this.steamid = finalizeLoginRes.steamID;
     await this.setAuthCookie(finalizeLoginRes.transfer_info);
@@ -65,9 +74,7 @@ export default class SteamWeb implements ISteamWeb {
    * Login to steam with access_token
    * @returns auth cookie
    */
-  async loginWithAccessToken(accessToken: string): Promise<void> {
-    const payload = this.verifyAccessToken(accessToken, "access");
-    this.steamid = payload.sub;
+  private async loginWithAccessToken(accessToken: string): Promise<void> {
     const value = encodeURI(`${this.steamid}||${accessToken}`);
     this.setCookie("steamLoginSecure", value);
 
@@ -90,17 +97,19 @@ export default class SteamWeb implements ISteamWeb {
     this.fetchOptions.headers.set("Cookie", "");
   }
 
-  private verifyAccessToken(token: string, type: "refresh" | "access"): Payload {
+  private verifyAccessToken(token: string) {
     try {
+      let tokenType: "access" | "refresh";
+
       const encodedPayload = token.split(".")[1];
 
       const buff = Buffer.from(encodedPayload, "base64");
       const payload = JSON.parse(buff.toString("utf8")) as Payload;
 
-      if (type === "access") {
-        if (payload.aud.includes("renew")) throw new SteamWebError("Token is not an access_token.");
+      if (payload.aud.includes("renew")) {
+        tokenType = "refresh";
       } else {
-        if (!payload.aud.includes("renew")) throw new SteamWebError("Token is not a refresh_token.");
+        tokenType = "access";
       }
 
       if (!payload.aud.includes("web")) throw "Token audience is not valid for web.";
@@ -110,7 +119,8 @@ export default class SteamWeb implements ISteamWeb {
 
       // don't accept tokens that are about to expire
       if (timeLeft / 60 < 1) throw new SteamWebError(ERRORS.TOKEN_EXPIRED);
-      return payload;
+
+      return { payload, tokenType };
     } catch (error) {
       if (error instanceof SyntaxError) {
         throw new SteamWebError("Invalid token.");

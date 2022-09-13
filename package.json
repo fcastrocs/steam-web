@@ -1,16 +1,25 @@
 {
   "name": "@machiavelli/steam-web",
-  "version": "1.0.0",
-  "description": "Interaction with steamcommunity.com",
+  "version": "1.0.1",
+  "description": "Interact with steamcommunity.com.",
   "main": "./lib/index.js",
   "type": "module",
   "types": "./@types/index.d.ts",
+  "keywords": [
+    "steam",
+    "steamcommunity",
+    "steam api"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "mocha --require mocha-steps"
   },
   "author": "Machiavelli",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fcastrocs/steam-web.git"
+  },
   "dependencies": {
     "cheerio": "^1.0.0-rc.12",
     "formdata-node": "^5.0.0",

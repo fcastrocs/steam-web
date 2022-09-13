@@ -12,16 +12,10 @@ interface FetchOptions {
 
 export default interface ISteamWeb {
   /**
-   * Login to steam with refresh_token
-   * (takes longer than with access_token)
-   * @returns Cookie header
+   * Login to Steamcommunity.com
+   * token: access_token or refresh_token
    */
-  loginWithRefreshToken(refreshToken: string): Promise<void>;
-  /**
-   * Login to steam with access_token
-   * @returns auth cookie
-   */
-  loginWithAccessToken(accessToken: string): Promise<void>;
+  login(token: string): Promise<void>;
   /**
    * Logout and destroy cookies
    */

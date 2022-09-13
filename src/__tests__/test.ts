@@ -9,12 +9,12 @@ let s: SteamWeb;
 describe("Test steam-web", () => {
   step("access_token should grant authentication", async () => {
     s = new SteamWeb();
-    await s.loginWithAccessToken(process.env.ACCESS_TOKEN);
+    await s.login(process.env.ACCESS_TOKEN);
   });
 
   step("refresh_token should grant authentication", async () => {
     s = new SteamWeb();
-    await s.loginWithRefreshToken(process.env.REFRESH_TOKEN);
+    await s.login(process.env.REFRESH_TOKEN);
   });
 
   it("getFarmableGames() - should return FarmableGame[]", async () => {
