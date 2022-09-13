@@ -22,6 +22,7 @@ export const ERRORS = {
   RATE_LIMIT: "RateLimitExceeded",
   COOKIE_EXPIRED: "CookieExpired",
   TOKEN_EXPIRED: "TokenExpired",
+  INVALID_TOKEN: "InvalidToken",
 } as const;
 
 const userAgent =
@@ -111,7 +112,7 @@ export default class SteamWeb implements ISteamWeb {
         tokenType = "access";
       }
 
-      if (!payload.aud.includes("web")) throw "Token audience is not valid for web.";
+      if (!payload.aud.includes("web")) throw new SteamWebError("Token audience is not valid for web.");
 
       const currTime = ~~(Date.now() / 1000);
       const timeLeft = payload.exp - currTime;
@@ -122,7 +123,7 @@ export default class SteamWeb implements ISteamWeb {
       return { payload, tokenType };
     } catch (error) {
       if (error instanceof SyntaxError) {
-        throw new SteamWebError("Invalid token.");
+        throw new SteamWebError(ERRORS.INVALID_TOKEN);
       }
       throw error;
     }
