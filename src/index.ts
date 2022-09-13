@@ -65,9 +65,54 @@ export default class SteamWeb implements ISteamWeb {
    * @returns auth cookie
    */
   private async loginWithRefreshToken(refreshToken: string): Promise<void> {
-    const finalizeLoginRes = await this.finalizeLogin(refreshToken);
-    this.steamid = finalizeLoginRes.steamID;
-    await this.setAuthCookie(finalizeLoginRes.transfer_info);
+    let form = new FormData();
+    form.append("nonce", refreshToken);
+    form.append("sessionid", this.sessionid);
+    form.append("redir", "https://store.steampowered.com/login/?redir=&redir_ssl=1&snr=1_4_4__global-header");
+
+    // get transfer_info
+    const finalizeLoginRes = await fetch("https://login.steampowered.com/jwt/finalizelogin", {
+      ...this.fetchOptions,
+      body: form,
+      method: "POST",
+    }).then(async (res) => {
+      this.validateRes(res);
+      const body = (await res.json()) as FinalizeloginRes;
+      if (body.success === false) throw body.error; // EResult
+      return body;
+    });
+
+    // the steam website makes requests to all three transfer_info items to setup auth cookies to all their domains and subdomains
+    // however we only need to make one request and we can use the auth cookies everywhere.
+    const transfer = finalizeLoginRes.transfer_info[0];
+    form = new FormData();
+    form.append("nonce", transfer.params.nonce);
+    form.append("auth", transfer.params.auth);
+    form.append("steamID", this.steamid);
+
+    const cookies = await fetch(transfer.url, {
+      ...this.fetchOptions,
+      body: form,
+      method: "POST",
+    }).then(async (res) => {
+      this.validateRes(res);
+
+      const body = (await res.json()) as { result: number };
+      if (body.result !== 1) throw body.result;
+
+      return res.headers.get("set-cookie");
+    });
+
+    // headers['set-cookie'] must contain steamLoginSecure
+    if (!cookies.includes("steamLoginSecure")) {
+      console.log(cookies);
+      console.log(finalizeLoginRes);
+      throw new SteamWebError("SomethingWentWrong");
+    }
+
+    // making only one request to transfer
+    this.setCookie("sessionid", this.sessionid);
+    this.setCookieHeader(cookies);
   }
 
   /**
@@ -78,12 +123,12 @@ export default class SteamWeb implements ISteamWeb {
     const value = encodeURI(`${this.steamid}||${accessToken}`);
     this.setCookie("steamLoginSecure", value);
 
-    // make this call to get sessionid cookie
+    // make this low overhead call to get sessionid cookie
     await fetch("https://steamcommunity.com/actions/GetNotificationCounts", {
       ...this.fetchOptions,
     }).then(async (res) => {
       this.validateRes(res);
-      this.setCookiesFromHeader(res.headers);
+      this.setCookieHeader(res.headers.get("set-cookie"));
     });
   }
 
@@ -129,77 +174,31 @@ export default class SteamWeb implements ISteamWeb {
     }
   }
 
-  private async finalizeLogin(refreshToken: string): Promise<FinalizeloginRes> {
-    const form = new FormData();
-    form.append("nonce", refreshToken);
-    form.append("sessionid", this.sessionid);
-    form.append("redir", "https://store.steampowered.com/login/?redir=&redir_ssl=1&snr=1_4_4__global-header");
-
-    const finalizeLoginRes = await fetch("https://login.steampowered.com/jwt/finalizelogin", {
-      ...this.fetchOptions,
-      body: form,
-      method: "POST",
-    }).then(async (res) => {
-      if (res.status === 429) throw new SteamWebError(ERRORS.RATE_LIMIT);
-      if (!res.ok) throw res;
-
-      const body = (await res.json()) as FinalizeloginRes;
-
-      if (body.success === false) {
-        throw body.error;
-      }
-
-      return body;
-    });
-
-    return finalizeLoginRes;
-  }
-
-  private async setAuthCookie(transfer_info: FinalizeloginRes["transfer_info"]) {
-    const transfer = transfer_info[0];
-    const form = new FormData();
-    form.append("nonce", transfer.params.nonce);
-    form.append("auth", transfer.params.auth);
-    form.append("steamID", this.steamid);
-
-    const headers = await fetch(transfer.url, {
-      ...this.fetchOptions,
-      body: form,
-      method: "POST",
-    }).then(async (res) => {
-      this.validateRes(res);
-
-      const body = (await res.json()) as { result: number };
-      if (body.result !== 1) throw body.result;
-
-      return res.headers;
-    });
-
-    this.setCookie("sessionid", this.sessionid);
-    this.setCookiesFromHeader(headers);
-  }
-
-  private setCookiesFromHeader(headers: Headers) {
+  /**
+   * parse set-cookie header and set them to cookie header
+   */
+  private setCookieHeader(strCookies: string) {
     const cookies = new Map<string, string>();
 
     // set cookies into a map
-    headers
-      .get("set-cookie")
-      .split(",")
-      .forEach((c) => {
-        const cookie = c.split("; Path")[0].trim().split("=");
-        cookies.set(cookie[0], cookie[1]);
-      });
+    strCookies.split(",").forEach((c) => {
+      const cookie = c.split("; Path")[0].trim().split("=");
+      cookies.set(cookie[0], cookie[1]);
+    });
 
     // set cookies to header
     for (const [name, value] of cookies) {
+      this.setCookie(name, value);
+
       if (name === "sessionid") {
         this.sessionid = value;
       }
-      this.setCookie(name, value);
     }
   }
 
+  /**
+   * set a cookie to header
+   */
   private setCookie(name: string, value: string) {
     const cookie = name + "=" + value;
     let cookies = this.fetchOptions.headers.get("Cookie");
@@ -321,9 +320,6 @@ export default class SteamWeb implements ISteamWeb {
     throw json;
   }
 
-  /**
-   * Helper function for getCardsInventory
-   */
   private parseItems(data: InventoryResponse, contextId: string): Item[] {
     const inventory = data.rgInventory;
     const description = data.rgDescriptions;
@@ -345,9 +341,6 @@ export default class SteamWeb implements ISteamWeb {
     return items;
   }
 
-  /**
-   * Helper function for getFarmableGames
-   */
   private parseFarmingData(html: string): FarmableGame[] {
     const $ = load(html);
 
