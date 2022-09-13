@@ -10,7 +10,7 @@ interface FetchOptions {
   headers: Headers;
 }
 
-export default interface ISteamcommunity {
+export default interface ISteamWeb {
   /**
    * Login to steam with refresh_token
    * (takes longer than with access_token)

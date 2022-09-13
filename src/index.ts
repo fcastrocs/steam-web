@@ -5,7 +5,7 @@ import fetch, { Headers, Response } from "node-fetch";
 import { SocksProxyAgent } from "socks-proxy-agent";
 import { URLSearchParams } from "url";
 
-import ISteamcommunity, {
+import ISteamWeb, {
   FarmableGame,
   Item,
   InventoryResponse,
@@ -17,7 +17,7 @@ import ISteamcommunity, {
   Payload,
   FetchOptions,
 } from "../@types";
-import SteamcommunityError from "./SteamcommunityError.js";
+import SteamWebError from "./SteamWebError.js";
 
 export const ERRORS = {
   RATE_LIMIT: "RateLimitExceeded",
@@ -28,7 +28,7 @@ export const ERRORS = {
 const userAgent =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36";
 
-export default class Steamcommunity implements ISteamcommunity {
+export default class SteamWeb implements ISteamWeb {
   private steamid: string;
   private sessionid = randomBytes(12).toString("hex");
   private fetchOptions: FetchOptions = {
@@ -98,9 +98,9 @@ export default class Steamcommunity implements ISteamcommunity {
       const payload = JSON.parse(buff.toString("utf8")) as Payload;
 
       if (type === "access") {
-        if (payload.aud.includes("renew")) throw new SteamcommunityError("Token is not an access_token.");
+        if (payload.aud.includes("renew")) throw new SteamWebError("Token is not an access_token.");
       } else {
-        if (!payload.aud.includes("renew")) throw new SteamcommunityError("Token is not a refresh_token.");
+        if (!payload.aud.includes("renew")) throw new SteamWebError("Token is not a refresh_token.");
       }
 
       if (!payload.aud.includes("web")) throw "Token audience is not valid for web.";
@@ -109,11 +109,11 @@ export default class Steamcommunity implements ISteamcommunity {
       const timeLeft = payload.exp - currTime;
 
       // don't accept tokens that are about to expire
-      if (timeLeft / 60 < 1) throw new SteamcommunityError(ERRORS.TOKEN_EXPIRED);
+      if (timeLeft / 60 < 1) throw new SteamWebError(ERRORS.TOKEN_EXPIRED);
       return payload;
     } catch (error) {
       if (error instanceof SyntaxError) {
-        throw new SteamcommunityError("Invalid token.");
+        throw new SteamWebError("Invalid token.");
       }
       throw error;
     }
@@ -130,7 +130,7 @@ export default class Steamcommunity implements ISteamcommunity {
       body: form,
       method: "POST",
     }).then(async (res) => {
-      if (res.status === 429) throw new SteamcommunityError(ERRORS.RATE_LIMIT);
+      if (res.status === 429) throw new SteamWebError(ERRORS.RATE_LIMIT);
       if (!res.ok) throw res;
 
       const body = (await res.json()) as FinalizeloginRes;
@@ -225,7 +225,7 @@ export default class Steamcommunity implements ISteamcommunity {
     });
 
     if (!data.success) {
-      if (data.Error === "This profile is private.") throw new SteamcommunityError(ERRORS.COOKIE_EXPIRED);
+      if (data.Error === "This profile is private.") throw new SteamWebError(ERRORS.COOKIE_EXPIRED);
       throw data;
     }
 
@@ -263,7 +263,7 @@ export default class Steamcommunity implements ISteamcommunity {
 
     // error is given with 200 code as text because it's valve.
     const text = await res.text();
-    if (text === "#Error_BadOrMissingSteamID") throw new SteamcommunityError(ERRORS.COOKIE_EXPIRED);
+    if (text === "#Error_BadOrMissingSteamID") throw new SteamWebError(ERRORS.COOKIE_EXPIRED);
     throw text;
   }
 
@@ -342,7 +342,7 @@ export default class Steamcommunity implements ISteamcommunity {
     const $ = load(html);
 
     // check if cookie expired
-    if ($(".global_action_link").first().text().includes("login")) throw new SteamcommunityError(ERRORS.COOKIE_EXPIRED);
+    if ($(".global_action_link").first().text().includes("login")) throw new SteamWebError(ERRORS.COOKIE_EXPIRED);
 
     const FarmableGame: FarmableGame[] = [];
 
@@ -414,8 +414,8 @@ export default class Steamcommunity implements ISteamcommunity {
   }
 
   private validateRes(res: Response) {
-    if (res.status === 429) throw new SteamcommunityError(ERRORS.RATE_LIMIT);
-    if (res.status === 401) throw new SteamcommunityError(ERRORS.COOKIE_EXPIRED);
+    if (res.status === 429) throw new SteamWebError(ERRORS.RATE_LIMIT);
+    if (res.status === 401) throw new SteamWebError(ERRORS.COOKIE_EXPIRED);
     if (!res.ok) throw res;
   }
 }
