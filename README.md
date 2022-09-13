@@ -34,7 +34,6 @@ const session = await steamWeb.login(token);
 
 ```javascript
 import SteamWeb from "@machiavelli/steam-web";
-import { SocksProxyAgent } from "socks-proxy-agent";
 
 const info = {
   hostname: "br41.nordvpn.com",
