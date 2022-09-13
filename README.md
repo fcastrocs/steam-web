@@ -1,6 +1,6 @@
-# @machiavelli/steam-web
+# steam-web
 
-steam-web is a library to interact with steamcommunity.com. It provides an easy API to important account data that is otherwise hard to obtain programmatically without scraping it.
+steam-web is a Node.js module to interact with steamcommunity.com. It provides an easy API to important account data that is otherwise hard to obtain programmatically without scraping it.
 
 ## Installation
 
