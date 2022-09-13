@@ -2,7 +2,6 @@ import { FormData } from "formdata-node";
 import { randomBytes } from "crypto";
 import { load } from "cheerio";
 import fetch, { Headers, Response } from "node-fetch";
-import { SocksProxyAgent } from "socks-proxy-agent";
 import { URLSearchParams } from "url";
 
 import ISteamWeb, {
@@ -42,8 +41,8 @@ export default class SteamWeb implements ISteamWeb {
     this.fetchOptions.headers.set("Cookie", "");
 
     if (this.options) {
-      if (options.agentOptions) {
-        this.fetchOptions.agent = new SocksProxyAgent(options.agentOptions);
+      if (options.agent) {
+        this.fetchOptions.agent = this.options.agent;
       }
     }
   }

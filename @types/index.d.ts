@@ -1,8 +1,8 @@
+import { Agent } from "http";
 import { Headers } from "node-fetch";
-import { SocksProxyAgentOptions } from "socks-proxy-agent";
 
 export interface Options {
-  agentOptions?: SocksProxyAgentOptions;
+  agent?: Agent;
 }
 
 interface FetchOptions {
