@@ -1,6 +1,6 @@
 {
   "name": "@machiavelli/steam-web",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Interact with steamcommunity.com.",
   "main": "./lib/index.js",
   "type": "module",
@@ -8,7 +8,8 @@
   "keywords": [
     "steam",
     "steamcommunity",
-    "steam api"
+    "steam api",
+    "steam web"
   ],
   "scripts": {
     "build": "tsc",
