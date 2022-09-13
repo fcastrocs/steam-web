@@ -2,7 +2,14 @@
 
 steam-web is a library to interact with steamcommunity.com. It provides an easy API to important account data that is otherwise hard to obtain programmatically without scraping it.
 
+## Installation
+
+```sh
+npm i @machiavelli/steam-web
+```
+
 ## Features
+
 - New steam login support (JWT)
 - Login using access_token.
 - Login using refresh_token.
@@ -12,6 +19,7 @@ steam-web is a library to interact with steamcommunity.com. It provides an easy 
 ## Usage
 
 ### connect directly
+
 ```javascript
 import SteamWeb from "@machiavelli/steam-web";
 
@@ -23,6 +31,7 @@ const session = await steamWeb.login(token);
 ```
 
 ### connect through proxy
+
 ```javascript
 import SteamWeb from "@machiavelli/steam-web";
 import { SocksProxyAgent } from "socks-proxy-agent";
@@ -39,10 +48,10 @@ cosnt session = await steamWeb.login(token);
 ```
 
 ### Re-use previous session to skip login
+
 ```javascript
 import SteamWeb from "@machiavelli/steam-web";
 import { SocksProxyAgent } from "socks-proxy-agent";
-
 
 // session is returned by login()
 const steamWeb = new SteamWeb();
