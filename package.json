@@ -1,6 +1,6 @@
 {
   "name": "@machiavelli/steam-web",
-  "version": "2.0.7",
+  "version": "1.0.0",
   "description": "Interaction with steamcommunity.com",
   "main": "./lib/index.js",
   "type": "module",
@@ -9,7 +9,7 @@
     "build": "tsc",
     "test": "mocha --require mocha-steps"
   },
-  "author": "",
+  "author": "Machiavelli",
   "license": "ISC",
   "dependencies": {
     "cheerio": "^1.0.0-rc.12",
