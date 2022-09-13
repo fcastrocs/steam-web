@@ -3,7 +3,6 @@ import { Headers } from "node-fetch";
 
 export interface Options {
   agent?: Agent;
-  session?: Session;
 }
 
 export interface FetchOptions {

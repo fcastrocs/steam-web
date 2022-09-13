@@ -21,7 +21,7 @@ import SteamWebError from "./SteamWebError.js";
 
 export const ERRORS = {
   RATE_LIMIT: "RateLimitExceeded",
-  COOKIE_EXPIRED: "CookieExpired",
+  NOT_LOGGEDIN: "NotLoggedIn",
   TOKEN_EXPIRED: "TokenExpired",
   INVALID_TOKEN: "InvalidToken",
 } as const;
@@ -43,19 +43,27 @@ export default class SteamWeb implements ISteamWeb {
     this.fetchOptions.headers.set("Cookie", "");
 
     if (this.options) {
+      // proxy passed
       if (this.options.agent) {
         this.fetchOptions.agent = this.options.agent;
-      }
-
-      // reuse previous session
-      if (this.options.session) {
-        this.sessionid = this.options.session.sessionid;
-        this.steamid = this.options.session.steamid;
-        this.fetchOptions.headers.set("Cookie", this.options.session.cookies);
       }
     }
   }
 
+  /**
+   * Re-use a previous session, thus we don't have to login again
+   */
+  async setSession(session: Session) {
+    this.sessionid = session.sessionid;
+    this.steamid = session.steamid;
+    this.fetchOptions.headers.set("Cookie", session.cookies);
+    await this.verifyLoggedIn();
+  }
+
+  /**
+   * Login to Steamcommunity.com
+   * token: access_token or refresh_token
+   */
   async login(token: string): Promise<Session> {
     const { payload, tokenType } = this.verifyAccessToken(token);
     this.steamid = payload.sub;
@@ -65,6 +73,8 @@ export default class SteamWeb implements ISteamWeb {
     } else if (tokenType === "refresh") {
       await this.loginWithRefreshToken(token);
     }
+
+    await this.verifyLoggedIn();
 
     return {
       cookies: this.fetchOptions.headers.get("Cookie"),
@@ -136,12 +146,17 @@ export default class SteamWeb implements ISteamWeb {
   private async loginWithAccessToken(accessToken: string): Promise<void> {
     const value = encodeURI(`${this.steamid}||${accessToken}`);
     this.setCookie("steamLoginSecure", value);
+  }
 
-    // make this low overhead call to get sessionid cookie
+  /**
+   * Low overhead call to verify we logged in successfully
+   */
+  private async verifyLoggedIn() {
     await fetch("https://steamcommunity.com/actions/GetNotificationCounts", {
       ...this.fetchOptions,
     }).then(async (res) => {
       this.validateRes(res);
+      // set any cookies we might have gotten from this request (i.e sessionid, browserid)
       this.setCookieHeader(res.headers.get("set-cookie"));
     });
   }
@@ -192,6 +207,8 @@ export default class SteamWeb implements ISteamWeb {
    * parse set-cookie header and set them to cookie header
    */
   private setCookieHeader(strCookies: string) {
+    if (!strCookies) return;
+
     const cookies = new Map<string, string>();
 
     // set cookies into a map
@@ -248,7 +265,7 @@ export default class SteamWeb implements ISteamWeb {
     });
 
     if (!data.success) {
-      if (data.Error === "This profile is private.") throw new SteamWebError(ERRORS.COOKIE_EXPIRED);
+      if (data.Error === "This profile is private.") throw new SteamWebError(ERRORS.NOT_LOGGEDIN);
       throw data;
     }
 
@@ -275,19 +292,14 @@ export default class SteamWeb implements ISteamWeb {
 
     const res = await fetch(url, { ...this.fetchOptions, method: "POST", body: form });
     this.validateRes(res);
+    const text = await res.text();
 
-    const contentType = res.headers.get("content-type");
-    // avatar uploaded successfully
-    if (contentType && contentType.includes("application/json")) {
-      const json = (await res.json()) as unknown as AvatarUploadResponse;
-      if (json.success) return json.images.full;
-      throw json;
+    if (!text.includes(`{"success":true,`)) {
+      throw new SteamWebError(ERRORS.NOT_LOGGEDIN);
     }
 
-    // error is given with 200 code as text because it's valve.
-    const text = await res.text();
-    if (text === "#Error_BadOrMissingSteamID") throw new SteamWebError(ERRORS.COOKIE_EXPIRED);
-    throw text;
+    const json: AvatarUploadResponse = JSON.parse(text);
+    return json.images.full;
   }
 
   /**
@@ -301,6 +313,10 @@ export default class SteamWeb implements ISteamWeb {
 
     const res = await fetch(url, { ...this.fetchOptions, method: "POST", body: params });
     this.validateRes(res);
+    const text = await res.text();
+    if (!text.includes('{"success":1')) {
+      throw new SteamWebError(ERRORS.NOT_LOGGEDIN);
+    }
   }
 
   /**
@@ -329,9 +345,11 @@ export default class SteamWeb implements ISteamWeb {
 
     const res = await fetch(url, { ...this.fetchOptions, method: "POST", body: form });
     this.validateRes(res);
-    const json = (await res.json()) as unknown as PrivacyResponce;
-    if (json.success) return;
-    throw json;
+
+    const text = await res.text();
+    if (!text.includes('{"success":1')) {
+      throw new SteamWebError(ERRORS.NOT_LOGGEDIN);
+    }
   }
 
   private parseItems(data: InventoryResponse, contextId: string): Item[] {
@@ -359,7 +377,7 @@ export default class SteamWeb implements ISteamWeb {
     const $ = load(html);
 
     // check if cookie expired
-    if ($(".global_action_link").first().text().includes("login")) throw new SteamWebError(ERRORS.COOKIE_EXPIRED);
+    if ($(".global_action_link").first().text().includes("login")) throw new SteamWebError(ERRORS.NOT_LOGGEDIN);
 
     const FarmableGame: FarmableGame[] = [];
 
@@ -432,7 +450,7 @@ export default class SteamWeb implements ISteamWeb {
 
   private validateRes(res: Response) {
     if (res.status === 429) throw new SteamWebError(ERRORS.RATE_LIMIT);
-    if (res.status === 401) throw new SteamWebError(ERRORS.COOKIE_EXPIRED);
+    if (res.status === 401) throw new SteamWebError(ERRORS.NOT_LOGGEDIN);
     if (!res.ok) throw res;
   }
 }
