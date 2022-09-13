@@ -1,7 +1,7 @@
 {
-  "name": "steamcommunity-api",
-  "version": "2.0.5",
-  "description": "Account interaction with steamcommunity.com",
+  "name": "@machiavelli/steam-web",
+  "version": "2.0.6",
+  "description": "Interaction with steamcommunity.com",
   "main": "./lib/index.js",
   "type": "module",
   "types": "./@types/index.d.ts",
