@@ -52,7 +52,7 @@ export default class SteamWeb implements ISteamWeb {
   /**
    * Re-use a previous session, thus we don't have to login again
    */
-  async setSession(session: Session) {
+  async setSession(session: Session): Promise<void> {
     this.sessionid = session.sessionid;
     this.steamid = session.steamid;
     this.fetchOptions.headers.set("Cookie", session.cookies);

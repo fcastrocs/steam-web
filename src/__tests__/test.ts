@@ -4,7 +4,7 @@ import SteamWeb from "../index.js";
 import assert from "assert";
 import { Session } from "../../@types/index.js";
 
-const avatar = "https://avatars.akamai.steamstatic.com/5863a38653985de991306b27428f5063afc7904a_full.jpg";
+const avatar = "https://avatars.akamai.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg";
 let s: SteamWeb;
 let session: Session;
 

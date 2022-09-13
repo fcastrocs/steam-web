@@ -18,6 +18,10 @@ export interface Session {
 
 export default interface ISteamWeb {
   /**
+   * Re-use a previous session, thus we don't have to login again
+   */
+  setSession(session: Session): Promise<void>;
+  /**
    * Login to Steamcommunity.com
    * token: access_token or refresh_token
    */
