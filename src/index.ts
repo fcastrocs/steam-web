@@ -15,6 +15,7 @@ import ISteamWeb, {
   FinalizeloginRes,
   Payload,
   FetchOptions,
+  Session,
 } from "../@types";
 import SteamWebError from "./SteamWebError.js";
 
@@ -42,13 +43,20 @@ export default class SteamWeb implements ISteamWeb {
     this.fetchOptions.headers.set("Cookie", "");
 
     if (this.options) {
-      if (options.agent) {
+      if (this.options.agent) {
         this.fetchOptions.agent = this.options.agent;
+      }
+
+      // reuse previous session
+      if (this.options.session) {
+        this.sessionid = this.options.session.sessionid;
+        this.steamid = this.options.session.steamid;
+        this.fetchOptions.headers.set("Cookie", this.options.session.cookies);
       }
     }
   }
 
-  async login(token: string) {
+  async login(token: string): Promise<Session> {
     const { payload, tokenType } = this.verifyAccessToken(token);
     this.steamid = payload.sub;
 
@@ -57,6 +65,12 @@ export default class SteamWeb implements ISteamWeb {
     } else if (tokenType === "refresh") {
       await this.loginWithRefreshToken(token);
     }
+
+    return {
+      cookies: this.fetchOptions.headers.get("Cookie"),
+      sessionid: this.sessionid,
+      steamid: this.steamid,
+    };
   }
 
   /**

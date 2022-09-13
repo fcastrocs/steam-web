@@ -3,11 +3,18 @@ import { Headers } from "node-fetch";
 
 export interface Options {
   agent?: Agent;
+  session?: Session;
 }
 
-interface FetchOptions {
+export interface FetchOptions {
   agent: Agent;
   headers: Headers;
+}
+
+export interface Session {
+  cookies: string;
+  sessionid: string;
+  steamid: string;
 }
 
 export default interface ISteamWeb {
@@ -15,7 +22,7 @@ export default interface ISteamWeb {
    * Login to Steamcommunity.com
    * token: access_token or refresh_token
    */
-  login(token: string): Promise<void>;
+  login(token: string): Promise<Session>;
   /**
    * Logout and destroy cookies
    */
