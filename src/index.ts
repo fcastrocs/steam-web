@@ -64,7 +64,7 @@ export default class SteamWeb implements ISteamWeb {
    * token: access_token or refresh_token
    */
   async login(token: string): Promise<Session> {
-    const { payload, tokenType } = this.verifyAccessToken(token);
+    const { payload, tokenType } = this.verifyToken(token);
     this.steamid = payload.sub;
 
     if (tokenType === "access") {
@@ -170,7 +170,7 @@ export default class SteamWeb implements ISteamWeb {
     this.fetchOptions.headers.set("Cookie", "");
   }
 
-  private verifyAccessToken(token: string) {
+  private verifyToken(token: string) {
     try {
       let tokenType: "access" | "refresh";
 

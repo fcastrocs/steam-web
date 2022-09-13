@@ -96,21 +96,6 @@ interface InventoryResponse {
   };
 }
 
-interface PrivacyResponce {
-  success: number;
-  Privacy: {
-    PrivacySettings: {
-      PrivacyProfile: number;
-      PrivacyInventory: number;
-      PrivacyInventoryGifts: number;
-      PrivacyOwnedGames: number;
-      PrivacyPlaytime: number;
-      PrivacyFriendsList: number;
-    };
-    eCommentPermission: number;
-  };
-}
-
 interface FinalizeloginRes {
   steamID: string;
   redir: string;
