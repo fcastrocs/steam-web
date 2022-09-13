@@ -13,21 +13,20 @@
   "license": "ISC",
   "dependencies": {
     "cheerio": "^1.0.0-rc.12",
-    "formdata-node": "^4.3.3",
-    "node-fetch": "^3.2.9",
-    "socks-proxy-agent": "^7.0.0",
-    "steam-crypto-esm": "^3.0.10"
+    "formdata-node": "^5.0.0",
+    "node-fetch": "^3.2.10",
+    "socks-proxy-agent": "^7.0.0"
   },
   "devDependencies": {
     "@types/mocha": "^9.1.1",
     "@types/mocha-steps": "^1.3.0",
-    "@types/node": "^18.6.1",
-    "@typescript-eslint/eslint-plugin": "^5.32.0",
-    "@typescript-eslint/parser": "^5.32.0",
-    "eslint": "^8.21.0",
+    "@types/node": "^18.7.17",
+    "@typescript-eslint/eslint-plugin": "^5.37.0",
+    "@typescript-eslint/parser": "^5.37.0",
+    "dotenv": "^16.0.2",
+    "eslint": "^8.23.1",
     "mocha": "^10.0.0",
     "mocha-steps": "^1.3.0",
-    "steam-client": "github:fcastrocs/Steam-Client",
-    "typescript": "^4.7.4"
+    "typescript": "^4.8.3"
   }
 }

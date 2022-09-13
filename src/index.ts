@@ -1,98 +1,200 @@
-import { FormData, Blob } from "formdata-node";
-import Crypto from "crypto";
+import { FormData } from "formdata-node";
+import { randomBytes } from "crypto";
 import { load } from "cheerio";
-import SteamCrypto from "steam-crypto-esm";
-import fetch, { BodyInit, RequestInit } from "node-fetch";
+import fetch, { Headers, Response } from "node-fetch";
 import { SocksProxyAgent } from "socks-proxy-agent";
 import { URLSearchParams } from "url";
-import {
-  Cookie,
+
+import ISteamcommunity, {
   FarmableGame,
   Item,
   InventoryResponse,
   Options,
   ProfilePrivacy,
   AvatarUploadResponse,
-  LoginResponse,
   PrivacyResponce,
+  FinalizeloginRes,
+  Payload,
+  FetchOptions,
 } from "../@types";
-
-export const fetchOptions: RequestInit = {
-  headers: {
-    "User-Agent":
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36",
-  },
-};
-
-export class SteamcommunityError extends Error {
-  constructor(message: string) {
-    super(message);
-    super.name = "steamcommunity-api";
-  }
-}
+import SteamcommunityError from "./SteamcommunityError.js";
 
 export const ERRORS = {
-  NEED_WEBNONCE: new SteamcommunityError("NeedWebNonce"),
-  RATE_LIMIT: new SteamcommunityError("RateLimitExceeded"),
-  NEED_COOKIE: new SteamcommunityError("NeedCookie"),
-  COOKIE_EXPIRED: new SteamcommunityError("CookieExpired"),
-  BAD_REQUEST: new SteamcommunityError("BadRequest"),
+  RATE_LIMIT: "RateLimitExceeded",
+  COOKIE_EXPIRED: "CookieExpired",
+  TOKEN_EXPIRED: "TokenExpired",
 } as const;
 
-export default class Steamcommunity {
-  private readonly steamid: string;
-  private readonly webNonce: string;
-  private cookie: Cookie;
+const userAgent =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36";
 
-  constructor(options: Options) {
-    if (options.agentOptions) {
-      fetchOptions.agent = new SocksProxyAgent(options.agentOptions);
-    }
-    this.steamid = options.steamid;
-    this.webNonce = options.webNonce;
-    if (options.cookie) {
-      this.setCookie(options.cookie);
-    }
-  }
+export default class Steamcommunity implements ISteamcommunity {
+  private steamid: string;
+  private sessionid = randomBytes(12).toString("hex");
+  private fetchOptions: FetchOptions = {
+    agent: null,
+    headers: new Headers(),
+  };
 
-  /**
-   * Set cookie from JSON string
-   */
-  public setCookie(cookie: Cookie) {
-    this.cookie = cookie;
-    fetchOptions.headers = { ...fetchOptions.headers, Cookie: this.stringifyCookie(this.cookie) };
-  }
+  constructor(private readonly options?: Options) {
+    // set default headers
+    this.fetchOptions.headers.set("User-Agent", userAgent);
+    this.fetchOptions.headers.set("Cookie", "");
 
-  /**
-   * Login via Steam API to obtain a cookie session
-   */
-  async login(): Promise<Cookie> {
-    if (!this.webNonce) throw ERRORS.NEED_WEBNONCE;
-
-    const url = "https://api.steampowered.com/ISteamUserAuth/AuthenticateUser/v1";
-
-    const sessionkey = SteamCrypto.generateSessionKey();
-    const encrypted_loginkey = SteamCrypto.symmetricEncryptWithHmacIv(this.webNonce, sessionkey.plain);
-
-    const form = new FormData();
-    form.append("steamid", this.steamid);
-    form.append("encrypted_loginkey", new Blob([encrypted_loginkey]));
-    form.append("sessionkey", new Blob([sessionkey.encrypted]));
-
-    const res: LoginResponse = await fetch(url, { ...fetchOptions, method: "POST", body: form as BodyInit }).then(
-      (res) => {
-        if (res.ok) return res.json() as unknown as LoginResponse;
-        if (res.status === 429) throw ERRORS.RATE_LIMIT;
-        if (res.status === 401) throw ERRORS.COOKIE_EXPIRED;
-        throw res;
+    if (this.options) {
+      if (options.agentOptions) {
+        this.fetchOptions.agent = new SocksProxyAgent(options.agentOptions);
       }
-    );
+    }
+  }
 
-    this.setCookie({
-      sessionid: Crypto.randomBytes(12).toString("hex"),
-      steamLoginSecure: res.authenticateuser.tokensecure,
+  /**
+   * Login to steam with refresh_token
+   * (takes longer than with access_token)
+   * @returns auth cookie
+   */
+  async loginWithRefreshToken(refreshToken: string): Promise<void> {
+    this.verifyAccessToken(refreshToken, "refresh");
+
+    const finalizeLoginRes = await this.finalizeLogin(refreshToken);
+    this.steamid = finalizeLoginRes.steamID;
+    await this.setAuthCookie(finalizeLoginRes.transfer_info);
+  }
+
+  /**
+   * Login to steam with access_token
+   * @returns auth cookie
+   */
+  async loginWithAccessToken(accessToken: string): Promise<void> {
+    const payload = this.verifyAccessToken(accessToken, "access");
+    this.steamid = payload.sub;
+    const value = encodeURI(`${this.steamid}||${accessToken}`);
+    this.setCookie("steamLoginSecure", value);
+
+    // make this call to get sessionid cookie
+    await fetch("https://steamcommunity.com/actions/GetNotificationCounts", {
+      ...this.fetchOptions,
+    }).then(async (res) => {
+      this.validateRes(res);
+      this.setCookiesFromHeader(res.headers);
     });
-    return this.cookie;
+  }
+
+  /**
+   * Logout and destroy cookies
+   */
+  async logout() {
+    const form = new FormData();
+    form.append("sessionid", this.sessionid);
+    await fetch("https://store.steampowered.com/logout/", { ...this.fetchOptions, method: "POST", body: form });
+    this.fetchOptions.headers.set("Cookie", "");
+  }
+
+  private verifyAccessToken(token: string, type: "refresh" | "access"): Payload {
+    try {
+      const encodedPayload = token.split(".")[1];
+
+      const buff = Buffer.from(encodedPayload, "base64");
+      const payload = JSON.parse(buff.toString("utf8")) as Payload;
+
+      if (type === "access") {
+        if (payload.aud.includes("renew")) throw new SteamcommunityError("Token is not an access_token.");
+      } else {
+        if (!payload.aud.includes("renew")) throw new SteamcommunityError("Token is not a refresh_token.");
+      }
+
+      if (!payload.aud.includes("web")) throw "Token audience is not valid for web.";
+
+      const currTime = ~~(Date.now() / 1000);
+      const timeLeft = payload.exp - currTime;
+
+      // don't accept tokens that are about to expire
+      if (timeLeft / 60 < 1) throw new SteamcommunityError(ERRORS.TOKEN_EXPIRED);
+      return payload;
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        throw new SteamcommunityError("Invalid token.");
+      }
+      throw error;
+    }
+  }
+
+  private async finalizeLogin(refreshToken: string): Promise<FinalizeloginRes> {
+    const form = new FormData();
+    form.append("nonce", refreshToken);
+    form.append("sessionid", this.sessionid);
+    form.append("redir", "https://store.steampowered.com/login/?redir=&redir_ssl=1&snr=1_4_4__global-header");
+
+    const finalizeLoginRes = await fetch("https://login.steampowered.com/jwt/finalizelogin", {
+      ...this.fetchOptions,
+      body: form,
+      method: "POST",
+    }).then(async (res) => {
+      if (res.status === 429) throw new SteamcommunityError(ERRORS.RATE_LIMIT);
+      if (!res.ok) throw res;
+
+      const body = (await res.json()) as FinalizeloginRes;
+
+      if (body.success === false) {
+        throw body.error;
+      }
+
+      return body;
+    });
+
+    return finalizeLoginRes;
+  }
+
+  private async setAuthCookie(transfer_info: FinalizeloginRes["transfer_info"]) {
+    const transfer = transfer_info[0];
+    const form = new FormData();
+    form.append("nonce", transfer.params.nonce);
+    form.append("auth", transfer.params.auth);
+    form.append("steamID", this.steamid);
+
+    const headers = await fetch(transfer.url, {
+      ...this.fetchOptions,
+      body: form,
+      method: "POST",
+    }).then(async (res) => {
+      this.validateRes(res);
+
+      const body = (await res.json()) as { result: number };
+      if (body.result !== 1) throw body.result;
+
+      return res.headers;
+    });
+
+    this.setCookie("sessionid", this.sessionid);
+    this.setCookiesFromHeader(headers);
+  }
+
+  private setCookiesFromHeader(headers: Headers) {
+    const cookies = new Map<string, string>();
+
+    // set cookies into a map
+    headers
+      .get("set-cookie")
+      .split(",")
+      .forEach((c) => {
+        const cookie = c.split("; Path")[0].trim().split("=");
+        cookies.set(cookie[0], cookie[1]);
+      });
+
+    // set cookies to header
+    for (const [name, value] of cookies) {
+      if (name === "sessionid") {
+        this.sessionid = value;
+      }
+      this.setCookie(name, value);
+    }
+  }
+
+  private setCookie(name: string, value: string) {
+    const cookie = name + "=" + value;
+    let cookies = this.fetchOptions.headers.get("Cookie");
+    cookies = cookie + "; " + cookies;
+    this.fetchOptions.headers.set("Cookie", cookies);
   }
 
   /**
@@ -101,10 +203,9 @@ export default class Steamcommunity {
   async getFarmableGames(): Promise<FarmableGame[]> {
     const url = `https://steamcommunity.com/profiles/${this.steamid}/badges`;
 
-    const res = await fetch(url, fetchOptions).then((res) => {
-      if (res.ok) return res.text();
-      if (res.status === 429) throw ERRORS.RATE_LIMIT;
-      throw res;
+    const res = await fetch(url, this.fetchOptions).then((res) => {
+      this.validateRes(res);
+      return res.text();
     });
 
     const data: FarmableGame[] = this.parseFarmingData(res);
@@ -115,19 +216,16 @@ export default class Steamcommunity {
    * Get cards inventory
    */
   async getCardsInventory(): Promise<Item[]> {
-    if (!this.cookie) throw ERRORS.NEED_COOKIE;
-
     const contextId = "6"; // trading cards
     const url = `https://steamcommunity.com/profiles/${this.steamid}/inventory/json/753/${contextId}`;
 
-    const data = await fetch(url, fetchOptions).then((res) => {
-      if (res.ok) return res.json() as unknown as InventoryResponse;
-      if (res.status === 429) throw ERRORS.RATE_LIMIT;
-      throw res;
+    const data = await fetch(url, this.fetchOptions).then((res) => {
+      this.validateRes(res);
+      return res.json() as unknown as InventoryResponse;
     });
 
     if (!data.success) {
-      if (data.Error === "This profile is private.") throw ERRORS.COOKIE_EXPIRED;
+      if (data.Error === "This profile is private.") throw new SteamcommunityError(ERRORS.COOKIE_EXPIRED);
       throw data;
     }
 
@@ -138,11 +236,9 @@ export default class Steamcommunity {
   /**
    * Change account profile avatar
    */
-  async changeAvatar(avatarDataURL: string): Promise<string> {
-    if (!this.cookie) throw ERRORS.NEED_COOKIE;
+  async changeAvatar(avatarURL: string): Promise<string> {
+    const blob = await fetch(avatarURL).then((res) => res.blob());
     const url = "https://steamcommunity.com/actions/FileUploader/";
-
-    const blob = await fetch(avatarDataURL).then((res) => res.blob());
 
     const form = new FormData();
     form.append("name", "avatar");
@@ -150,13 +246,12 @@ export default class Steamcommunity {
     form.append("avatar", blob);
     form.append("type", "player_avatar_image");
     form.append("sId", this.steamid);
-    form.append("sessionid", this.cookie.sessionid);
+    form.append("sessionid", this.sessionid);
     form.append("doSub", 1);
     form.append("json", 1);
 
-    const res = await fetch(url, { ...fetchOptions, method: "POST", body: form });
-    if (res.status === 429) throw ERRORS.RATE_LIMIT;
-    if (res.status === 400) throw ERRORS.BAD_REQUEST;
+    const res = await fetch(url, { ...this.fetchOptions, method: "POST", body: form });
+    this.validateRes(res);
 
     const contentType = res.headers.get("content-type");
     // avatar uploaded successfully
@@ -168,7 +263,7 @@ export default class Steamcommunity {
 
     // error is given with 200 code as text because it's valve.
     const text = await res.text();
-    if (text === "#Error_BadOrMissingSteamID") throw ERRORS.COOKIE_EXPIRED;
+    if (text === "#Error_BadOrMissingSteamID") throw new SteamcommunityError(ERRORS.COOKIE_EXPIRED);
     throw text;
   }
 
@@ -176,24 +271,19 @@ export default class Steamcommunity {
    * Clear account's previous aliases
    */
   async clearAliases() {
-    if (!this.cookie) throw ERRORS.NEED_COOKIE;
     const url = `https://steamcommunity.com/profiles/${this.steamid}/ajaxclearaliashistory/`;
 
     const params = new URLSearchParams();
-    params.append("sessionid", this.cookie.sessionid);
+    params.append("sessionid", this.sessionid);
 
-    const res = await fetch(url, { ...fetchOptions, method: "POST", body: params });
-    if (res.ok) return;
-    if (res.status === 429) throw ERRORS.RATE_LIMIT;
-    if (res.status === 401) throw ERRORS.COOKIE_EXPIRED;
-    throw res;
+    const res = await fetch(url, { ...this.fetchOptions, method: "POST", body: params });
+    this.validateRes(res);
   }
 
   /**
    * Change account's privacy settings
    */
   async changePrivacy(privacy: ProfilePrivacy) {
-    if (!this.cookie) throw ERRORS.NEED_COOKIE;
     const url = `https://steamcommunity.com/profiles/${this.steamid}/ajaxsetprivacy/`;
 
     const settings = {
@@ -210,19 +300,15 @@ export default class Steamcommunity {
     else if (privacy === "private") settings.PrivacyProfile = 1;
 
     const form = new FormData();
-    form.append("sessionid", this.cookie.sessionid);
+    form.append("sessionid", this.sessionid);
     form.append("Privacy", JSON.stringify(settings));
     form.append("eCommentPermission", 1);
 
-    const res = await fetch(url, { ...fetchOptions, method: "POST", body: form });
-    if (res.status === 429) throw ERRORS.RATE_LIMIT;
-    if (res.status === 401) throw ERRORS.COOKIE_EXPIRED;
-    if (res.ok) {
-      const json = (await res.json()) as unknown as PrivacyResponce;
-      if (json.success) return;
-      throw json;
-    }
-    throw res;
+    const res = await fetch(url, { ...this.fetchOptions, method: "POST", body: form });
+    this.validateRes(res);
+    const json = (await res.json()) as unknown as PrivacyResponce;
+    if (json.success) return;
+    throw json;
   }
 
   /**
@@ -256,7 +342,7 @@ export default class Steamcommunity {
     const $ = load(html);
 
     // check if cookie expired
-    if ($(".global_action_link").first().text().includes("login")) throw ERRORS.COOKIE_EXPIRED;
+    if ($(".global_action_link").first().text().includes("login")) throw new SteamcommunityError(ERRORS.COOKIE_EXPIRED);
 
     const FarmableGame: FarmableGame[] = [];
 
@@ -327,7 +413,9 @@ export default class Steamcommunity {
     return FarmableGame;
   }
 
-  private stringifyCookie(cookie: Cookie): string {
-    return `sessionid=${cookie.sessionid}; steamLoginSecure=${cookie.steamLoginSecure};`;
+  private validateRes(res: Response) {
+    if (res.status === 429) throw new SteamcommunityError(ERRORS.RATE_LIMIT);
+    if (res.status === 401) throw new SteamcommunityError(ERRORS.COOKIE_EXPIRED);
+    if (!res.ok) throw res;
   }
 }

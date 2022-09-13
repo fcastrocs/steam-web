@@ -6,3 +6,4 @@ tsconfig.json
 src
 package-lock.json
 lib/__tests__
+.env
