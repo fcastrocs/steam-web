@@ -1,20 +1,8 @@
 import { Agent } from "http";
 import { Headers } from "node-fetch";
+import SteamWebError from "SteamWebError";
 
-export interface Options {
-  agent?: Agent;
-}
-
-export interface FetchOptions {
-  agent: Agent;
-  headers: Headers;
-}
-
-export interface Session {
-  cookies: string;
-  sessionid: string;
-  steamid: string;
-}
+export { SteamWebError };
 
 export default interface ISteamWeb {
   /**
@@ -52,6 +40,21 @@ export default interface ISteamWeb {
   changePrivacy(privacy: ProfilePrivacy): Promise<void>;
 }
 
+export interface Options {
+  agent?: Agent;
+}
+
+export interface FetchOptions {
+  agent: Agent;
+  headers: Headers;
+}
+
+export interface Session {
+  cookies: string;
+  sessionid: string;
+  steamid: string;
+}
+
 export interface FarmableGame {
   name: string;
   appId: number;
@@ -72,14 +75,14 @@ export interface Item {
 
 export type ProfilePrivacy = "public" | "friendsOnly" | "private";
 
-interface AvatarUploadResponse {
+export interface AvatarUploadResponse {
   success: boolean;
   images: { "0": string; full: string; medium: string };
   hash: string;
   message: string;
 }
 
-interface InventoryResponse {
+export interface InventoryResponse {
   success: boolean;
   Error?: string;
   rgInventory: {
@@ -100,7 +103,7 @@ interface InventoryResponse {
   };
 }
 
-interface FinalizeloginRes {
+export interface FinalizeloginRes {
   steamID: string;
   redir: string;
   transfer_info: { url: string; params: { nonce: string; auth: string } }[];
@@ -109,7 +112,7 @@ interface FinalizeloginRes {
   error?: number;
 }
 
-interface Payload {
+export interface Payload {
   iss: string;
   sub: string;
   aud: string[];
@@ -123,7 +126,7 @@ interface Payload {
   ip_confirmer: string;
 }
 
-interface Notifications {
+export interface Notifications {
   notifications: {
     "1": number;
     "2": number;
