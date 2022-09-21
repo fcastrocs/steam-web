@@ -4,7 +4,7 @@ import SteamWebError from "SteamWebError";
 
 export { SteamWebError };
 
-export default interface ISteamWeb {
+export default class ISteamWeb {
   /**
    * Re-use a previous session, thus we don't have to login again
    */
