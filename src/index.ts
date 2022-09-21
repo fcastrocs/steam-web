@@ -17,6 +17,7 @@ import ISteamWeb, {
   Session,
 } from "../@types";
 import SteamWebError from "./SteamWebError.js";
+export { SteamWebError };
 
 export const ERRORS = {
   RATE_LIMIT: "RateLimitExceeded",
