@@ -277,6 +277,16 @@ export default class SteamWeb implements ISteamWeb {
    * Change account profile avatar
    */
   async changeAvatar(avatarURL: string): Promise<string> {
+    // verify url is actually an image
+    const isImage = await fetch(avatarURL, { method: "HEAD" }).then((res) => {
+      const contentType = res.headers.get("Content-Type");
+      return contentType.includes("image/jpeg") || contentType.includes("image/png");
+    });
+
+    if (!isImage) {
+      throw new SteamWebError("URL is not an JPEG or PNG image.");
+    }
+
     const blob = await fetch(avatarURL).then((res) => res.blob());
     const url = "https://steamcommunity.com/actions/FileUploader/";
 
