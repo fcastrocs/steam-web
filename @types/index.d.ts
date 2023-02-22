@@ -5,6 +5,8 @@ import SteamWebError from "SteamWebError";
 export { SteamWebError };
 
 export default class ISteamWeb {
+  constructor(options?: Options);
+
   /**
    * Re-use a previous session, thus we don't have to login again
    */
