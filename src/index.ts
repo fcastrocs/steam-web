@@ -281,7 +281,7 @@ export default class SteamWeb implements ISteamWeb {
     let res = await fetch(avatarURL, { method: "HEAD" });
     // only allow jpeg and png
     const contentType = res.headers.get("Content-Type");
-    if (contentType.includes("image/jpeg") || contentType.includes("image/png")) {
+    if (!contentType.includes("image/jpeg") && !contentType.includes("image/png")) {
       throw new SteamWebError("URL is not an JPEG or PNG image.");
     }
     // size should not be larger than 1024 kB
