@@ -277,14 +277,16 @@ export default class SteamWeb implements ISteamWeb {
    * Change account profile avatar
    */
   async changeAvatar(avatarURL: string): Promise<string> {
-    // verify url is actually an image
-    const isImage = await fetch(avatarURL, { method: "HEAD" }).then((res) => {
-      const contentType = res.headers.get("Content-Type");
-      return contentType.includes("image/jpeg") || contentType.includes("image/png");
-    });
-
-    if (!isImage) {
+    // validate image first
+    let res = await fetch(avatarURL, { method: "HEAD" });
+    // only allow jpeg and png
+    const contentType = res.headers.get("Content-Type");
+    if (contentType.includes("image/jpeg") || contentType.includes("image/png")) {
       throw new SteamWebError("URL is not an JPEG or PNG image.");
+    }
+    // size should not be larger than 1024 kB
+    if (parseInt(res.headers.get("content-length")) / 1024 > 1024) {
+      throw new SteamWebError("Image size should not be larger than 1024 kB.");
     }
 
     const blob = await fetch(avatarURL).then((res) => res.blob());
@@ -300,7 +302,7 @@ export default class SteamWeb implements ISteamWeb {
     form.append("doSub", 1);
     form.append("json", 1);
 
-    const res = await fetch(url, { ...this.fetchOptions, method: "POST", body: form });
+    res = await fetch(url, { ...this.fetchOptions, method: "POST", body: form });
     this.validateRes(res);
     const text = await res.text();
 
