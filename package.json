@@ -1,6 +1,6 @@
 {
   "name": "@machiavelli/steam-web",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "description": "Interact with steamcommunity.com.",
   "main": "./lib/index.js",
   "type": "module",

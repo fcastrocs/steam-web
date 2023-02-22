@@ -278,11 +278,11 @@ export default class SteamWeb implements ISteamWeb {
    */
   async changeAvatar(avatarURL: string): Promise<string> {
     // validate image first
-    let res = await fetch(avatarURL, { method: "HEAD" });
+    let res = await fetch("https://images.pexels.com/photos/1707215/pexels-photo-1707215.jpeg", { method: "HEAD" });
     // only allow jpeg and png
-    const contentType = res.headers.get("Content-Type");
+    const contentType = res.headers.get("content-type");
     if (!contentType.includes("image/jpeg") && !contentType.includes("image/png")) {
-      throw new SteamWebError("URL is not an JPEG or PNG image.");
+      throw new SteamWebError("URL does not contain a JPEG or PNG image.");
     }
     // size should not be larger than 1024 kB
     if (parseInt(res.headers.get("content-length")) / 1024 > 1024) {
