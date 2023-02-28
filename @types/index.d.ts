@@ -40,6 +40,10 @@ export default class ISteamWeb {
    * Change account's privacy settings
    */
   changePrivacy(privacy: ProfilePrivacy): Promise<void>;
+  /**
+   * Get avatar frame
+   */
+  getAvatarFrame(): Promise<string>;
 }
 
 export interface Options {

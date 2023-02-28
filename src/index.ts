@@ -253,6 +253,28 @@ export default class SteamWeb implements ISteamWeb {
   }
 
   /**
+   * Get avatar frame
+   */
+  async getAvatarFrame(): Promise<string> {
+    const url = `https://steamcommunity.com/profiles/${this.steamid}`;
+
+    const res = await fetch(url, this.fetchOptions).then((res) => {
+      this.validateRes(res);
+      return res.text();
+    });
+
+    const $ = load(res);
+
+    const frameHTML = $(".profile_avatar_frame");
+
+    if (!frameHTML.length) {
+      return null;
+    }
+
+    return frameHTML.first().find("img").attr("src");
+  }
+
+  /**
    * Get cards inventory
    */
   async getCardsInventory(): Promise<Item[]> {

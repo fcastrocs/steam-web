@@ -101,4 +101,9 @@ await steamWeb.setSession(session);
    */
   changePrivacy(privacy: ProfilePrivacy): Promise<void>;
 
+  /**
+   * Get avatar frame
+   */
+  getAvatarFrame(): Promise<string>
+
 ```
