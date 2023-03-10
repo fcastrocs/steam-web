@@ -1,6 +1,6 @@
 {
-  "name": "@machiavelli/steam-web",
-  "version": "1.0.19",
+  "name": "@fcastrocs/steamweb",
+  "version": "1.0.0",
   "description": "Interact with steamcommunity.com.",
   "main": "./lib/index.js",
   "type": "module",
@@ -15,7 +15,7 @@
     "build": "tsc",
     "test": "mocha --require mocha-steps"
   },
-  "author": "Machiavelli",
+  "author": "Francisco Castro",
   "license": "ISC",
   "repository": {
     "type": "git",
