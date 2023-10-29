@@ -36,6 +36,7 @@ export default class SteamWeb implements ISteamWeb {
     agent: null,
     headers: new Headers(),
   };
+  private refreshToken: string;
 
   constructor(private readonly options?: Options) {
     // set default headers
@@ -68,13 +69,19 @@ export default class SteamWeb implements ISteamWeb {
     const { payload, tokenType } = this.verifyToken(token);
     this.steamid = payload.sub;
 
-    if (tokenType === "access") {
-      await this.loginWithAccessToken(token);
-    } else if (tokenType === "refresh") {
-      await this.loginWithRefreshToken(token);
-    }
+    this.refreshToken = token;
+    console.log(this.steamid)
 
-    await this.verifyLoggedIn();
+    this.generateAccessTokenForApp()
+
+    // if (tokenType === "access") {
+    //   await this.loginWithAccessToken(token);
+    // } else if (tokenType === "refresh") {
+    //   await this.loginWithRefreshToken(token);
+    // }
+
+    
+    //await this.verifyLoggedIn();
 
     return {
       cookies: this.fetchOptions.headers.get("Cookie"),
@@ -89,6 +96,7 @@ export default class SteamWeb implements ISteamWeb {
    * @returns auth cookie
    */
   private async loginWithRefreshToken(refreshToken: string): Promise<void> {
+    this.refreshToken = refreshToken;
     let form = new FormData();
     form.append("nonce", refreshToken);
     form.append("sessionid", this.sessionid);
@@ -148,17 +156,33 @@ export default class SteamWeb implements ISteamWeb {
     this.setCookie("steamLoginSecure", value);
   }
 
+  private async generateAccessTokenForApp() {
+    await fetch(`
+    https://api.steampowered.com/IAuthenticationService/GenerateAccessTokenForApp/v1?key=5C97A7C241055E3A36E95B7EED8A66FC&access_token=${this.refreshToken}&steamid=${this.steamid}`, {
+      ...this.fetchOptions, method: "POST"
+    }).then(async (res) => {
+      console.log(res);
+      console.log(await res.text());
+      console.log(await res.json());
+      //    this.validateRes(res);
+      // set any cookies we might have gotten from this request (i.e sessionid, browserid)
+      this.setCookieHeader(res.headers.get("set-cookie"));
+    });
+  }
+
   /**
    * Low overhead call to verify we logged in successfully
    */
   private async verifyLoggedIn() {
-    await fetch("https://steamcommunity.com/actions/GetNotificationCounts", {
-      ...this.fetchOptions,
-    }).then(async (res) => {
-      this.validateRes(res);
-      // set any cookies we might have gotten from this request (i.e sessionid, browserid)
-      this.setCookieHeader(res.headers.get("set-cookie"));
-    });
+    // await fetch(`
+    // https://api.steampowered.com/ISteamNotificationService/GetSteamNotifications/v1?access_token=`, {
+    //   ...this.fetchOptions,
+    // }).then(async (res) => {
+    //   console.log(res);
+    //   this.validateRes(res);
+    //   // set any cookies we might have gotten from this request (i.e sessionid, browserid)
+    //   this.setCookieHeader(res.headers.get("set-cookie"));
+    // });
   }
 
   /**

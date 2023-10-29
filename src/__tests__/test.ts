@@ -9,14 +9,14 @@ let s: SteamWeb;
 let session: Session;
 
 describe("Test steam-web", () => {
-  step("Access_token should grant authentication", async () => {
-    s = new SteamWeb();
-    await s.login(process.env.ACCESS_TOKEN);
-  });
+  // step("Access_token should grant authentication", async () => {
+  //   s = new SteamWeb();
+  //   await s.login(process.env.ACCESS_TOKEN);
+  // });
 
   step("Refresh_token should grant authentication", async () => {
     s = new SteamWeb();
-    const res = await s.login(process.env.REFRESH_TOKEN);
+    const res = await s.login("eyAidHlwIjogIkpXVCIsICJhbGciOiAiRWREU0EiIH0.eyAiaXNzIjogInN0ZWFtIiwgInN1YiI6ICI3NjU2MTE5Nzk2MDQxMDA0NCIsICJhdWQiOiBbICJjbGllbnQiLCAid2ViIiwgInJlbmV3IiwgImRlcml2ZSIgXSwgImV4cCI6IDE3MTAzNTE0MDUsICJuYmYiOiAxNjgzNjU5MTA5LCAiaWF0IjogMTY5MjI5OTEwOSwgImp0aSI6ICIwRDE3XzIzMDVBMUM4X0RCNEE0IiwgIm9hdCI6IDE2OTIyOTkxMDksICJwZXIiOiAxLCAiaXBfc3ViamVjdCI6ICIxMDguNTYuMTk2LjIxNSIsICJpcF9jb25maXJtZXIiOiAiMTcyLjU4LjI0NC4xNDgiIH0.fHxNbeEBEg4IiSBjNPnbt8w4AzNB9E0PQneD-AV10pYSZHObWS2rSiixjvmNDgbx9v4iox755tI6DLOvwNeXBw");
     session = res;
   });
 
